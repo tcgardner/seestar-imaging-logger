@@ -12,7 +12,7 @@ dist/
 service-account.json
 processed-files.json
 seestar-log-config.json
-seestar-imaging-loc.csv
+seestar-imaging-log.csv
 
 # Logs
 *.log
