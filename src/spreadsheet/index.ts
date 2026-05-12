@@ -1,4 +1,4 @@
 export { createMessierChecklistSheet } from './messier-checklist.js';
 export { createCaldwellChecklistSheet } from './caldwell-checklist.js';
 export { createAnalyticsSheet } from './analytics.js';
-export { isSheetEmpty, formatHeader, addObjectTypeColorRules, appendToGoogleSheet } from './astro-photo-log.js';
+export { ensureSheetSetup, appendToGoogleSheet, addObjectTypeColorRules } from './astro-photo-log.js';

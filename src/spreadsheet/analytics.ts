@@ -1,4 +1,5 @@
 import { createSheetsClient } from './sheets.js';
+import { findHeaderRow } from './checklist-utils.js';
 
 export async function createAnalyticsSheet(spreadsheetId: string) {
   try {
@@ -49,8 +50,9 @@ export async function createAnalyticsSheet(spreadsheetId: string) {
     });
 
     const logValues = logRes.data.values || [];
-    const headers = logValues[0] || [];
-    const logs = logValues.slice(1);
+    const headerRowIndex = findHeaderRow(logValues);
+    const headers = logValues[headerRowIndex] || [];
+    const logs = logValues.slice(headerRowIndex + 1);
 
     let objectTypeColumnIdx = -1;
     for (let i = 0; i < headers.length; i++) {

@@ -1,23 +1,22 @@
-import fs, { existsSync } from 'node:fs';
+import { existsSync } from 'node:fs';
 import { createSheetsClient } from './sheets.js';
 import { SERVICE_ACCOUNT_FILE } from '../env.js';
 
-export async function isSheetEmpty(spreadsheetId: string, sheetName = 'Astro Photo Log'): Promise<boolean> {
-  try {
-    const sheets = createSheetsClient();
-
-    const res = await sheets.spreadsheets.values.get({ 
-      spreadsheetId,
-      range: `${sheetName}!A1:Z1`,
-    });
-
-    const rows = res.data.values || [];
-    return rows.length === 0 || rows[0].length === 0;
-  } catch (err: any) {
-    console.warn('⚠️ Could not check if sheet is empty (assuming first time):', err.message);
-    return true;
-  }
-}
+export const LOG_ENTRY_HEADERS = [
+  'Date (YYYY-MM-DD)',
+  'Target/Object Name',
+  'Object Type',
+  'Catalog #',
+  'Exposure Time per Sub (seconds)',
+  'Number of Subs / Total Integration Time (seconds)',
+  'Filter Used',
+  'Gain / ISO',
+  'RA',
+  'DEC',
+  'TELESCOP',
+  'FITS File Path',
+  'Notes / Issues',
+];
 
 export async function formatHeader(spreadsheetId: string, sheetName = 'Astro Photo Log') {
   try {
@@ -25,41 +24,39 @@ export async function formatHeader(spreadsheetId: string, sheetName = 'Astro Pho
 
     const spreadsheet = await sheets.spreadsheets.get({ spreadsheetId });
     const sheet = spreadsheet.data.sheets?.find(s => s.properties?.title === sheetName);
-    const sheetId = sheet?.properties?.sheetId || 0;
-
-    const requests = [
-      {
-        repeatCell: {
-          range: { sheetId, startRowIndex: 0, endRowIndex: 1 },
-          cell: {
-            userEnteredFormat: {
-              backgroundColor: { red: 0.95, green: 0.95, blue: 0.95 },
-              textFormat: { bold: true, fontSize: 11 },
-              horizontalAlignment: 'CENTER',
-            },
-          },
-          fields: 'userEnteredFormat(backgroundColor,textFormat,horizontalAlignment)',
-        },
-      },
-      {
-        updateSheetProperties: {
-          properties: { sheetId, gridProperties: { frozenRowCount: 1 } },
-          fields: 'gridProperties.frozenRowCount',
-        },
-      },
-      {
-        autoResizeDimensions: {
-          dimensions: { sheetId, dimension: 'COLUMNS' },
-        },
-      },
-    ];
+    const sheetId = sheet?.properties?.sheetId ?? 0;
 
     await sheets.spreadsheets.batchUpdate({
       spreadsheetId,
-      requestBody: { requests },
+      requestBody: {
+        requests: [
+          {
+            repeatCell: {
+              range: { sheetId, startRowIndex: 0, endRowIndex: 1 },
+              cell: {
+                userEnteredFormat: {
+                  backgroundColor: { red: 0.95, green: 0.95, blue: 0.95 },
+                  textFormat: { bold: true, fontSize: 11 },
+                  horizontalAlignment: 'CENTER',
+                },
+              },
+              fields: 'userEnteredFormat(backgroundColor,textFormat,horizontalAlignment)',
+            },
+          },
+          {
+            updateSheetProperties: {
+              properties: { sheetId, gridProperties: { frozenRowCount: 1 } },
+              fields: 'gridProperties.frozenRowCount',
+            },
+          },
+          {
+            autoResizeDimensions: {
+              dimensions: { sheetId, dimension: 'COLUMNS' },
+            },
+          },
+        ],
+      },
     });
-
-    console.log('🎨 Applied nice header formatting and froze row 1');
   } catch (err: any) {
     console.warn('⚠️ Header formatting skipped:', err.message);
   }
@@ -68,13 +65,11 @@ export async function formatHeader(spreadsheetId: string, sheetName = 'Astro Pho
 function getColumnLetter(columnIndex: number) {
   let dividend = columnIndex + 1;
   let columnName = '';
-
   while (dividend > 0) {
     const modulo = (dividend - 1) % 26;
     columnName = String.fromCharCode(65 + modulo) + columnName;
     dividend = Math.floor((dividend - modulo) / 26);
   }
-
   return columnName;
 }
 
@@ -82,62 +77,61 @@ export async function addObjectTypeColorRules(spreadsheetId: string, sheetName =
   try {
     const sheets = createSheetsClient();
 
-    const spreadsheet = await sheets.spreadsheets.get({
-      spreadsheetId,
-      fields: 'sheets(properties(sheetId,title),conditionalFormats)',
-    });
+    const spreadsheet = await sheets.spreadsheets.get({ spreadsheetId });
     const sheet = spreadsheet.data.sheets?.find(s => s.properties?.title === sheetName);
-    const sheetId = sheet?.properties?.sheetId || 0;
+    const sheetId = sheet?.properties?.sheetId ?? 0;
 
     const headerRes = await sheets.spreadsheets.values.get({
       spreadsheetId,
       range: `${sheetName}!1:1`,
     });
     const headers = headerRes.data.values?.[0] || [];
-    const objectTypeColIndex = headers.findIndex((header) => String(header).trim().toUpperCase() === 'OBJECT TYPE');
-    const finalObjectTypeColIndex = objectTypeColIndex >= 0 ? objectTypeColIndex : 4;
+    const objectTypeColIndex = headers.findIndex(
+      (header) => String(header).trim().toUpperCase() === 'OBJECT TYPE'
+    );
+    const finalObjectTypeColIndex = objectTypeColIndex >= 0 ? objectTypeColIndex : 2;
     const objectTypeColumn = getColumnLetter(finalObjectTypeColIndex);
 
-    if (objectTypeColIndex < 0) {
-      console.warn(`⚠️ Could not find "Object Type" header; defaulting to column ${objectTypeColumn}`);
-    }
-
-    const requests: any[] = [];
     const existingRuleCount = sheet?.conditionalFormats?.length ?? 0;
-    for (let i = existingRuleCount - 1; i >= 0; i -= 1) {
-      requests.push({
-        deleteConditionalFormatRule: {
-          sheetId,
-          index: i,
-        },
-      });
+    console.log(`🗑️  Found ${existingRuleCount} existing color rule(s) to replace`);
+    if (existingRuleCount > 0) {
+      const deleteRequests: any[] = [];
+      for (let i = existingRuleCount - 1; i >= 0; i -= 1) {
+        deleteRequests.push({ deleteConditionalFormatRule: { sheetId, index: i } });
+      }
+      try {
+        await sheets.spreadsheets.batchUpdate({
+          spreadsheetId,
+          requestBody: { requests: deleteRequests },
+        });
+      } catch (delErr: any) {
+        console.warn(`⚠️ Could not delete ${existingRuleCount} old color rule(s): ${delErr.message}`);
+      }
     }
 
     const objectTypeCell = `$${objectTypeColumn}2`;
     const cleanedObjectType = `UPPER(TRIM(REGEXEXTRACT(${objectTypeCell}, "^[^\\(]+")))`;
 
     const colorRules = [
-      { pattern: 'Nebula', color: { red: 0.85, green: 0.7, blue: 0.95 } },
-      { pattern: 'Galaxy', color: { red: 0.7, green: 0.8, blue: 1.0 } },
-      { pattern: 'Cluster', color: { red: 1.0, green: 0.85, blue: 0.7 } },
-      { pattern: 'Planet', color: { red: 1.0, green: 0.95, blue: 0.7 } },
-      { pattern: 'Moon', color: { red: 1.0, green: 0.95, blue: 0.7 } },
-      { pattern: 'Sun', color: { red: 1.0, green: 0.95, blue: 0.7 } },
-      { pattern: 'Milky Way', color: { red: 0.7, green: 0.95, blue: 0.9 } },
-      { pattern: 'Landscape', color: { red: 0.8, green: 1.0, blue: 0.8 } },
+      { pattern: 'Nebula',       color: { red: 0.85, green: 0.7,  blue: 0.95 } },
+      { pattern: 'Galaxy',       color: { red: 0.7,  green: 0.8,  blue: 1.0  } },
+      { pattern: 'Star Cluster', color: { red: 1.0,  green: 0.92, blue: 0.45 } },
+      { pattern: 'Cluster',      color: { red: 1.0,  green: 0.85, blue: 0.7  } },
+      { pattern: 'Planet',       color: { red: 1.0,  green: 0.95, blue: 0.7  } },
+      { pattern: 'Moon',         color: { red: 1.0,  green: 0.95, blue: 0.7  } },
+      { pattern: 'Sun',          color: { red: 1.0,  green: 0.95, blue: 0.7  } },
+      { pattern: 'Milky Way',    color: { red: 0.7,  green: 0.95, blue: 0.9  } },
+      { pattern: 'Landscape',    color: { red: 0.8,  green: 1.0,  blue: 0.8  } },
     ];
+
+    const addRequests: any[] = [];
 
     colorRules.forEach((rule, index) => {
       const patternRegex = rule.pattern.toUpperCase().replace(/\s+/g, '\\s+');
-      requests.push({
+      addRequests.push({
         addConditionalFormatRule: {
           rule: {
-            ranges: [{
-              sheetId,
-              startRowIndex: 1,
-              startColumnIndex: 0,
-              endColumnIndex: 26,
-            }],
+            ranges: [{ sheetId, startRowIndex: 1, startColumnIndex: 0, endColumnIndex: 26 }],
             booleanRule: {
               condition: {
                 type: 'CUSTOM_FORMULA',
@@ -152,18 +146,13 @@ export async function addObjectTypeColorRules(spreadsheetId: string, sheetName =
     });
 
     const masterPattern = colorRules
-      .map(rule => rule.pattern.toUpperCase().replace(/\s+/g, '\\s+'))
+      .map(r => r.pattern.toUpperCase().replace(/\s+/g, '\\s+'))
       .join('|');
 
-    requests.push({
+    addRequests.push({
       addConditionalFormatRule: {
         rule: {
-          ranges: [{
-            sheetId,
-            startRowIndex: 1,
-            startColumnIndex: 0,
-            endColumnIndex: 26,
-          }],
+          ranges: [{ sheetId, startRowIndex: 1, startColumnIndex: 0, endColumnIndex: 26 }],
           booleanRule: {
             condition: {
               type: 'CUSTOM_FORMULA',
@@ -178,16 +167,47 @@ export async function addObjectTypeColorRules(spreadsheetId: string, sheetName =
 
     await sheets.spreadsheets.batchUpdate({
       spreadsheetId,
-      requestBody: { requests },
+      requestBody: { requests: addRequests },
     });
 
-    console.log('🎨 Added color coding rules for Object Type column');
+    console.log('🎨 Applied color coding rules for Object Type column');
   } catch (err: any) {
     console.warn('⚠️ Color rules skipped:', err.message);
   }
 }
 
-export async function appendToGoogleSheet(spreadsheetId: string, rows: any[], isFirstTime: boolean) {
+/**
+ * Ensures the Astro Photo Log has correct headers and color rules.
+ * Called unconditionally on every run so checklists can always detect columns.
+ */
+/**
+ * Writes correct headers and applies header formatting.
+ * Does NOT apply color rules — call addObjectTypeColorRules separately,
+ * AFTER any values.append calls, because INSERT_ROWS shifts conditional
+ * format range start indices and leaves rows uncolored.
+ */
+export async function ensureSheetSetup(spreadsheetId: string, sheetName = 'Astro Photo Log') {
+  if (!existsSync(SERVICE_ACCOUNT_FILE)) return;
+
+  try {
+    const sheets = createSheetsClient();
+
+    await sheets.spreadsheets.values.update({
+      spreadsheetId,
+      range: `${sheetName}!A1`,
+      valueInputOption: 'RAW',
+      requestBody: { values: [LOG_ENTRY_HEADERS] },
+    });
+
+    await formatHeader(spreadsheetId, sheetName);
+
+    console.log('🔧 Astro Photo Log headers verified');
+  } catch (err: any) {
+    console.warn('⚠️ Sheet setup failed:', err.message);
+  }
+}
+
+export async function appendToGoogleSheet(spreadsheetId: string, rows: any[]) {
   if (!existsSync(SERVICE_ACCOUNT_FILE)) {
     console.warn('⚠️ service-account.json not found – skipping Google Sheets export.');
     return false;
@@ -196,20 +216,6 @@ export async function appendToGoogleSheet(spreadsheetId: string, rows: any[], is
   try {
     const sheets = createSheetsClient();
     const sheetName = 'Astro Photo Log';
-
-    if (isFirstTime) {
-      const headers = Object.keys(rows[0]);
-      await sheets.spreadsheets.values.update({
-        spreadsheetId,
-        range: `${sheetName}!A1`,
-        valueInputOption: 'RAW',
-        requestBody: { values: [headers] },
-      });
-
-      await formatHeader(spreadsheetId, sheetName);
-      await addObjectTypeColorRules(spreadsheetId, sheetName);
-      console.log('📋 First-time setup: Header + formatting + colors applied');
-    }
 
     await sheets.spreadsheets.values.append({
       spreadsheetId,
@@ -221,8 +227,6 @@ export async function appendToGoogleSheet(spreadsheetId: string, rows: any[], is
         values: rows.map(row => Object.values(row)),
       },
     });
-
-    await addObjectTypeColorRules(spreadsheetId, sheetName);
 
     console.log(`✅ Successfully appended ${rows.length} new session(s) to Google Sheets`);
     return true;

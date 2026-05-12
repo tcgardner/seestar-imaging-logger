@@ -12,8 +12,9 @@ import {
   createMessierChecklistSheet,
   createCaldwellChecklistSheet,
   createAnalyticsSheet,
-  isSheetEmpty,
+  ensureSheetSetup,
   appendToGoogleSheet,
+  addObjectTypeColorRules,
 } from './spreadsheet/index.js';
 import { CONFIG_FILE, PROCESSED_FILE, DEFAULT_OUTPUT, DEFAULT_MAX_GAP_MINUTES, DEFAULT_MIN_FILES } from './env.js';
 
@@ -264,6 +265,8 @@ export function createSessionEntry(group: RawParsedFile[]): LogEntry {
   };
 }
 
+const FITS_CONCURRENCY = 10;
+
 async function main() {
   console.log('🔭 Seestar S30 Pro Imaging Log - Minimum files per session enabled');
   console.log('   🌐 Sesame CDS lookup active ');
@@ -323,8 +326,9 @@ async function main() {
 
       if (newFiles.length === 0) {
         console.log('✅ No new files.');
-        // Still update checklists even with no new files
         if (spreadsheetId) {
+          await ensureSheetSetup(spreadsheetId);
+          await addObjectTypeColorRules(spreadsheetId);
           await createMessierChecklistSheet(spreadsheetId);
           await createCaldwellChecklistSheet(spreadsheetId);
           await createAnalyticsSheet(spreadsheetId);
@@ -334,21 +338,26 @@ async function main() {
       }
 
       const rawParsed: RawParsedFile[] = [];
-      let processedCount = 0;
+      let completed = 0;
+      let queueIdx = 0;
 
-      for (const file of newFiles) {
-        processedCount++;
-        const percent = Math.round((processedCount / newFiles.length) * 100);
-        const bar = '█'.repeat(Math.floor(percent / 5)) + '░'.repeat(20 - Math.floor(percent / 5));
-
-        process.stdout.write(`\r\x1b[2K⏳ [${bar}] ${processedCount}/${newFiles.length} (${percent}%) – ${path.basename(file)}`);
-
-        const parsed = await parseFITS(file);
-        if (parsed) {
-          rawParsed.push(parsed);
-          processedFiles.add(file);
+      async function worker() {
+        while (queueIdx < newFiles.length) {
+          const idx = queueIdx++;
+          const file = newFiles[idx]!;
+          const parsed = await parseFITS(file);
+          if (parsed) {
+            rawParsed.push(parsed);
+            processedFiles.add(file);
+          }
+          completed++;
+          const percent = Math.round((completed / newFiles.length) * 100);
+          const bar = '█'.repeat(Math.floor(percent / 5)) + '░'.repeat(20 - Math.floor(percent / 5));
+          process.stdout.write(`\r\x1b[2K⏳ [${bar}] ${completed}/${newFiles.length} (${percent}%) – ${path.basename(file)}`);
         }
       }
+
+      await Promise.all(Array.from({ length: Math.min(FITS_CONCURRENCY, newFiles.length) }, worker));
       console.log('');
 
       const sessionEntries = groupIntoSessions(rawParsed, minFiles);
@@ -356,8 +365,9 @@ async function main() {
 
       if (sessionEntries.length === 0) {
         console.log('⚠️ No sessions met the minimum file requirement.');
-        // Still update checklists even with no sessions
         if (spreadsheetId) {
+          await ensureSheetSetup(spreadsheetId);
+          await addObjectTypeColorRules(spreadsheetId);
           await createMessierChecklistSheet(spreadsheetId);
           await createCaldwellChecklistSheet(spreadsheetId);
           await createAnalyticsSheet(spreadsheetId);
@@ -379,13 +389,10 @@ async function main() {
         await fs2.writeFile(options.output, csvString);
       }
 
-      if (spreadsheetId && sessionEntries.length > 0) {
-        const isFirstTime = await isSheetEmpty(spreadsheetId);
-        await appendToGoogleSheet(spreadsheetId, sessionEntries, isFirstTime);
-      }
-
-      // Always update checklists if spreadsheet is configured
       if (spreadsheetId) {
+        await ensureSheetSetup(spreadsheetId);
+        await appendToGoogleSheet(spreadsheetId, sessionEntries);
+        await addObjectTypeColorRules(spreadsheetId);
         await createMessierChecklistSheet(spreadsheetId);
         await createCaldwellChecklistSheet(spreadsheetId);
         await createAnalyticsSheet(spreadsheetId);
