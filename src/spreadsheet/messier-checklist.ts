@@ -9,8 +9,10 @@ import {
 } from './checklist-utils.js';
 
 function getSheetIdByTitle(spreadsheet: any, title: string): number {
-  return spreadsheet.data.sheets?.find((s: any) => s.properties?.title === title)
-    ?.properties?.sheetId ?? 0;
+  return (
+    spreadsheet.data.sheets?.find((s: any) => s.properties?.title === title)?.properties?.sheetId ??
+    0
+  );
 }
 
 export async function createMessierChecklistSheet(spreadsheetId: string) {
@@ -63,7 +65,9 @@ export async function createMessierChecklistSheet(spreadsheetId: string) {
       });
       logValues = logRes.data.values || [];
     } catch (logErr: any) {
-      console.warn(`⚠️ Could not read ${mainSheetName}; checklist will still be created without session history.`);
+      console.warn(
+        `⚠️ Could not read ${mainSheetName}; checklist will still be created without session history.`
+      );
     }
 
     const headerRowIndex = findHeaderRow(logValues, true);
@@ -72,7 +76,14 @@ export async function createMessierChecklistSheet(spreadsheetId: string) {
 
     const { catalogColumnIdx, dateColumnIdx } = detectColumns(headers, logs);
 
-    debugChecklistDetection(mainSheetName, headerRowIndex, headers, catalogColumnIdx, dateColumnIdx, logs);
+    debugChecklistDetection(
+      mainSheetName,
+      headerRowIndex,
+      headers,
+      catalogColumnIdx,
+      dateColumnIdx,
+      logs
+    );
 
     const catalogLogs = buildCatalogLogs(logs, catalogColumnIdx, dateColumnIdx);
 
@@ -90,7 +101,19 @@ export async function createMessierChecklistSheet(spreadsheetId: string) {
     const col3 = messierObjects.slice(74, 110);
 
     const data: any[] = [
-      ['Messier #', 'Object Name', 'Logs', '', 'Messier #', 'Object Name', 'Logs', '', 'Messier #', 'Object Name', 'Logs'],
+      [
+        'Messier #',
+        'Object Name',
+        'Logs',
+        '',
+        'Messier #',
+        'Object Name',
+        'Logs',
+        '',
+        'Messier #',
+        'Object Name',
+        'Logs',
+      ],
     ];
 
     const maxRows = Math.max(col1.length, col2.length, col3.length);
@@ -102,7 +125,11 @@ export async function createMessierChecklistSheet(spreadsheetId: string) {
 
       if (obj1) {
         const entries1 = catalogLogs[normalizeCatalogId(obj1.catalog)] || [];
-        row.push(obj1.catalog, obj1.name, entries1.length > 0 ? `${entries1.length} (${entries1.join(', ')})` : '-');
+        row.push(
+          obj1.catalog,
+          obj1.name,
+          entries1.length > 0 ? `${entries1.length} (${entries1.join(', ')})` : '-'
+        );
       } else {
         row.push('', '', '');
       }
@@ -110,7 +137,11 @@ export async function createMessierChecklistSheet(spreadsheetId: string) {
 
       if (obj2) {
         const entries2 = catalogLogs[normalizeCatalogId(obj2.catalog)] || [];
-        row.push(obj2.catalog, obj2.name, entries2.length > 0 ? `${entries2.length} (${entries2.join(', ')})` : '-');
+        row.push(
+          obj2.catalog,
+          obj2.name,
+          entries2.length > 0 ? `${entries2.length} (${entries2.join(', ')})` : '-'
+        );
       } else {
         row.push('', '', '');
       }
@@ -118,7 +149,11 @@ export async function createMessierChecklistSheet(spreadsheetId: string) {
 
       if (obj3) {
         const entries3 = catalogLogs[normalizeCatalogId(obj3.catalog)] || [];
-        row.push(obj3.catalog, obj3.name, entries3.length > 0 ? `${entries3.length} (${entries3.join(', ')})` : '-');
+        row.push(
+          obj3.catalog,
+          obj3.name,
+          entries3.length > 0 ? `${entries3.length} (${entries3.join(', ')})` : '-'
+        );
       } else {
         row.push('', '', '');
       }
@@ -126,13 +161,27 @@ export async function createMessierChecklistSheet(spreadsheetId: string) {
       data.push(row);
     }
 
-    const totalLogged = messierObjects.filter(obj => (catalogLogs[normalizeCatalogId(obj.catalog)] || []).length > 0).length;
+    const totalLogged = messierObjects.filter(
+      obj => (catalogLogs[normalizeCatalogId(obj.catalog)] || []).length > 0
+    ).length;
     const progressPercent = Math.round((totalLogged / 110) * 100);
 
     data.push([]);
     data.push(['Summary', '', '', '', '', '', '', '', '', '', '']);
     data.push(['Total Messier Objects', 110, '', '', 'Logged', totalLogged, '', '', '', '', '']);
-    data.push(['Progress', `${progressPercent}%`, '', '', 'Remaining', 110 - totalLogged, '', '', '', '', '']);
+    data.push([
+      'Progress',
+      `${progressPercent}%`,
+      '',
+      '',
+      'Remaining',
+      110 - totalLogged,
+      '',
+      '',
+      '',
+      '',
+      '',
+    ]);
 
     await sheets.spreadsheets.values.update({
       spreadsheetId,
@@ -151,11 +200,21 @@ export async function createMessierChecklistSheet(spreadsheetId: string) {
           requests: [
             {
               repeatCell: {
-                range: { sheetId, startRowIndex: 0, endRowIndex: 1, startColumnIndex: 0, endColumnIndex: 11 },
+                range: {
+                  sheetId,
+                  startRowIndex: 0,
+                  endRowIndex: 1,
+                  startColumnIndex: 0,
+                  endColumnIndex: 11,
+                },
                 cell: {
                   userEnteredFormat: {
                     backgroundColor: { red: 0.2, green: 0.4, blue: 0.8 },
-                    textFormat: { bold: true, foregroundColor: { red: 1, green: 1, blue: 1 }, fontSize: 12 },
+                    textFormat: {
+                      bold: true,
+                      foregroundColor: { red: 1, green: 1, blue: 1 },
+                      fontSize: 12,
+                    },
                     horizontalAlignment: 'CENTER',
                   },
                 },
@@ -165,9 +224,20 @@ export async function createMessierChecklistSheet(spreadsheetId: string) {
             {
               addConditionalFormatRule: {
                 rule: {
-                  ranges: [{ sheetId, startRowIndex: 1, endRowIndex: summaryStartRow, startColumnIndex: 0, endColumnIndex: 3 }],
+                  ranges: [
+                    {
+                      sheetId,
+                      startRowIndex: 1,
+                      endRowIndex: summaryStartRow,
+                      startColumnIndex: 0,
+                      endColumnIndex: 3,
+                    },
+                  ],
                   booleanRule: {
-                    condition: { type: 'CUSTOM_FORMULA', values: [{ userEnteredValue: '=AND($C2<>"", $C2<>"-")' }] },
+                    condition: {
+                      type: 'CUSTOM_FORMULA',
+                      values: [{ userEnteredValue: '=AND($C2<>"", $C2<>"-")' }],
+                    },
                     format: { backgroundColor: { red: 0.85, green: 1, blue: 0.8 } },
                   },
                 },
@@ -177,9 +247,20 @@ export async function createMessierChecklistSheet(spreadsheetId: string) {
             {
               addConditionalFormatRule: {
                 rule: {
-                  ranges: [{ sheetId, startRowIndex: 1, endRowIndex: summaryStartRow, startColumnIndex: 4, endColumnIndex: 7 }],
+                  ranges: [
+                    {
+                      sheetId,
+                      startRowIndex: 1,
+                      endRowIndex: summaryStartRow,
+                      startColumnIndex: 4,
+                      endColumnIndex: 7,
+                    },
+                  ],
                   booleanRule: {
-                    condition: { type: 'CUSTOM_FORMULA', values: [{ userEnteredValue: '=AND($G2<>"", $G2<>"-")' }] },
+                    condition: {
+                      type: 'CUSTOM_FORMULA',
+                      values: [{ userEnteredValue: '=AND($G2<>"", $G2<>"-")' }],
+                    },
                     format: { backgroundColor: { red: 0.85, green: 1, blue: 0.8 } },
                   },
                 },
@@ -189,9 +270,20 @@ export async function createMessierChecklistSheet(spreadsheetId: string) {
             {
               addConditionalFormatRule: {
                 rule: {
-                  ranges: [{ sheetId, startRowIndex: 1, endRowIndex: summaryStartRow, startColumnIndex: 8, endColumnIndex: 11 }],
+                  ranges: [
+                    {
+                      sheetId,
+                      startRowIndex: 1,
+                      endRowIndex: summaryStartRow,
+                      startColumnIndex: 8,
+                      endColumnIndex: 11,
+                    },
+                  ],
                   booleanRule: {
-                    condition: { type: 'CUSTOM_FORMULA', values: [{ userEnteredValue: '=AND($K2<>"", $K2<>"-")' }] },
+                    condition: {
+                      type: 'CUSTOM_FORMULA',
+                      values: [{ userEnteredValue: '=AND($K2<>"", $K2<>"-")' }],
+                    },
                     format: { backgroundColor: { red: 0.85, green: 1, blue: 0.8 } },
                   },
                 },
@@ -200,7 +292,13 @@ export async function createMessierChecklistSheet(spreadsheetId: string) {
             },
             {
               repeatCell: {
-                range: { sheetId, startRowIndex: summaryStartRow - 1, endRowIndex: maxRowIndex, startColumnIndex: 0, endColumnIndex: 11 },
+                range: {
+                  sheetId,
+                  startRowIndex: summaryStartRow - 1,
+                  endRowIndex: maxRowIndex,
+                  startColumnIndex: 0,
+                  endColumnIndex: 11,
+                },
                 cell: {
                   userEnteredFormat: {
                     backgroundColor: { red: 0.95, green: 0.95, blue: 0.8 },
@@ -236,17 +334,83 @@ export async function createMessierChecklistSheet(spreadsheetId: string) {
         spreadsheetId,
         requestBody: {
           requests: [
-            { updateDimensionProperties: { range: { sheetId, dimension: 'COLUMNS', startIndex: 0, endIndex: 1 }, properties: { pixelSize: 90 }, fields: 'pixelSize' } },
-            { updateDimensionProperties: { range: { sheetId, dimension: 'COLUMNS', startIndex: 1, endIndex: 2 }, properties: { pixelSize: 200 }, fields: 'pixelSize' } },
-            { updateDimensionProperties: { range: { sheetId, dimension: 'COLUMNS', startIndex: 2, endIndex: 3 }, properties: { pixelSize: 220 }, fields: 'pixelSize' } },
-            { updateDimensionProperties: { range: { sheetId, dimension: 'COLUMNS', startIndex: 3, endIndex: 4 }, properties: { pixelSize: 20 }, fields: 'pixelSize' } },
-            { updateDimensionProperties: { range: { sheetId, dimension: 'COLUMNS', startIndex: 4, endIndex: 5 }, properties: { pixelSize: 90 }, fields: 'pixelSize' } },
-            { updateDimensionProperties: { range: { sheetId, dimension: 'COLUMNS', startIndex: 5, endIndex: 6 }, properties: { pixelSize: 200 }, fields: 'pixelSize' } },
-            { updateDimensionProperties: { range: { sheetId, dimension: 'COLUMNS', startIndex: 6, endIndex: 7 }, properties: { pixelSize: 220 }, fields: 'pixelSize' } },
-            { updateDimensionProperties: { range: { sheetId, dimension: 'COLUMNS', startIndex: 7, endIndex: 8 }, properties: { pixelSize: 20 }, fields: 'pixelSize' } },
-            { updateDimensionProperties: { range: { sheetId, dimension: 'COLUMNS', startIndex: 8, endIndex: 9 }, properties: { pixelSize: 90 }, fields: 'pixelSize' } },
-            { updateDimensionProperties: { range: { sheetId, dimension: 'COLUMNS', startIndex: 9, endIndex: 10 }, properties: { pixelSize: 200 }, fields: 'pixelSize' } },
-            { updateDimensionProperties: { range: { sheetId, dimension: 'COLUMNS', startIndex: 10, endIndex: 11 }, properties: { pixelSize: 220 }, fields: 'pixelSize' } },
+            {
+              updateDimensionProperties: {
+                range: { sheetId, dimension: 'COLUMNS', startIndex: 0, endIndex: 1 },
+                properties: { pixelSize: 90 },
+                fields: 'pixelSize',
+              },
+            },
+            {
+              updateDimensionProperties: {
+                range: { sheetId, dimension: 'COLUMNS', startIndex: 1, endIndex: 2 },
+                properties: { pixelSize: 200 },
+                fields: 'pixelSize',
+              },
+            },
+            {
+              updateDimensionProperties: {
+                range: { sheetId, dimension: 'COLUMNS', startIndex: 2, endIndex: 3 },
+                properties: { pixelSize: 220 },
+                fields: 'pixelSize',
+              },
+            },
+            {
+              updateDimensionProperties: {
+                range: { sheetId, dimension: 'COLUMNS', startIndex: 3, endIndex: 4 },
+                properties: { pixelSize: 20 },
+                fields: 'pixelSize',
+              },
+            },
+            {
+              updateDimensionProperties: {
+                range: { sheetId, dimension: 'COLUMNS', startIndex: 4, endIndex: 5 },
+                properties: { pixelSize: 90 },
+                fields: 'pixelSize',
+              },
+            },
+            {
+              updateDimensionProperties: {
+                range: { sheetId, dimension: 'COLUMNS', startIndex: 5, endIndex: 6 },
+                properties: { pixelSize: 200 },
+                fields: 'pixelSize',
+              },
+            },
+            {
+              updateDimensionProperties: {
+                range: { sheetId, dimension: 'COLUMNS', startIndex: 6, endIndex: 7 },
+                properties: { pixelSize: 220 },
+                fields: 'pixelSize',
+              },
+            },
+            {
+              updateDimensionProperties: {
+                range: { sheetId, dimension: 'COLUMNS', startIndex: 7, endIndex: 8 },
+                properties: { pixelSize: 20 },
+                fields: 'pixelSize',
+              },
+            },
+            {
+              updateDimensionProperties: {
+                range: { sheetId, dimension: 'COLUMNS', startIndex: 8, endIndex: 9 },
+                properties: { pixelSize: 90 },
+                fields: 'pixelSize',
+              },
+            },
+            {
+              updateDimensionProperties: {
+                range: { sheetId, dimension: 'COLUMNS', startIndex: 9, endIndex: 10 },
+                properties: { pixelSize: 200 },
+                fields: 'pixelSize',
+              },
+            },
+            {
+              updateDimensionProperties: {
+                range: { sheetId, dimension: 'COLUMNS', startIndex: 10, endIndex: 11 },
+                properties: { pixelSize: 220 },
+                fields: 'pixelSize',
+              },
+            },
           ],
         },
       });
@@ -254,7 +418,9 @@ export async function createMessierChecklistSheet(spreadsheetId: string) {
       console.warn('⚠️ Column width update failed (non-critical):', widthErr.message);
     }
 
-    console.log(`✅ Messier Checklist updated: ${totalLogged}/110 objects logged (${progressPercent}%)`);
+    console.log(
+      `✅ Messier Checklist updated: ${totalLogged}/110 objects logged (${progressPercent}%)`
+    );
     return true;
   } catch (err: any) {
     console.error('❌ Failed to create Messier Checklist:', err.message);

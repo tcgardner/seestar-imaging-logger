@@ -17,7 +17,9 @@ export async function createAnalyticsSheet(spreadsheetId: string) {
     const mainSheetName = 'Astro Photo Log';
 
     const spreadsheet = await sheets.spreadsheets.get({ spreadsheetId });
-    const existingSheet = spreadsheet.data.sheets?.find((s: any) => s.properties?.title === analyticsSheetName);
+    const existingSheet = spreadsheet.data.sheets?.find(
+      (s: any) => s.properties?.title === analyticsSheetName
+    );
     const chartDeletionRequests: any[] = [];
     let sheetId: number;
 
@@ -25,14 +27,16 @@ export async function createAnalyticsSheet(spreadsheetId: string) {
       const batchUpdateResponse = await sheets.spreadsheets.batchUpdate({
         spreadsheetId,
         requestBody: {
-          requests: [{
-            addSheet: {
-              properties: {
-                title: analyticsSheetName,
-                gridProperties: { rowCount: 250, columnCount: 10 },
+          requests: [
+            {
+              addSheet: {
+                properties: {
+                  title: analyticsSheetName,
+                  gridProperties: { rowCount: 250, columnCount: 10 },
+                },
               },
             },
-          }],
+          ],
         },
       });
       sheetId = batchUpdateResponse.data.replies?.[0]?.addSheet?.properties?.sheetId ?? 0;
@@ -62,25 +66,29 @@ export async function createAnalyticsSheet(spreadsheetId: string) {
     const logs = logValues.slice(headerRowIndex + 1);
 
     // Detect all relevant columns in one pass
-    let objectTypeColumnIdx = -1, dateColumnIdx = -1,
-        integrationColumnIdx = -1, filterColumnIdx = -1, nameColumnIdx = -1;
+    let objectTypeColumnIdx = -1,
+      dateColumnIdx = -1,
+      integrationColumnIdx = -1,
+      filterColumnIdx = -1,
+      nameColumnIdx = -1;
     for (let i = 0; i < headers.length; i++) {
       const h = headers[i]?.toString().toLowerCase() ?? '';
-      if (h.includes('object type'))                          objectTypeColumnIdx  = i;
-      if (h.includes('date'))                                 dateColumnIdx        = i;
-      if (h.includes('integration'))                          integrationColumnIdx = i;
-      if (h.includes('filter'))                               filterColumnIdx      = i;
-      if (h.includes('target') || h.includes('object name')) nameColumnIdx        = i;
+      if (h.includes('object type')) objectTypeColumnIdx = i;
+      if (h.includes('date')) dateColumnIdx = i;
+      if (h.includes('integration')) integrationColumnIdx = i;
+      if (h.includes('filter')) filterColumnIdx = i;
+      if (h.includes('target') || h.includes('object name')) nameColumnIdx = i;
     }
 
     // Aggregations — single pass over all log rows
-    const typeCounts:  Record<string, number> = {};
-    const typeHours:   Record<string, number> = {};
+    const typeCounts: Record<string, number> = {};
+    const typeHours: Record<string, number> = {};
     const monthCounts: Record<string, number> = {};
     const objectCounts: Record<string, number> = {};
     const filterCounts: Record<string, number> = {};
     let totalHours = 0;
-    let firstDate = '', latestDate = '';
+    let firstDate = '',
+      latestDate = '';
 
     for (const row of logs) {
       if (objectTypeColumnIdx >= 0) {
@@ -117,13 +125,15 @@ export async function createAnalyticsSheet(spreadsheetId: string) {
     }
 
     // Sort aggregations
-    const typeEntries      = Object.entries(typeCounts) .sort((a, b) => b[1] - a[1]);
-    const typeHoursEntries = Object.entries(typeHours)  .sort((a, b) => b[1] - a[1]);
-    const monthEntries     = Object.entries(monthCounts).sort((a, b) => a[0].localeCompare(b[0]));
-    const top15Objects     = Object.entries(objectCounts).sort((a, b) => b[1] - a[1]).slice(0, 15);
-    const filterEntries    = Object.entries(filterCounts).sort((a, b) => b[1] - a[1]);
+    const typeEntries = Object.entries(typeCounts).sort((a, b) => b[1] - a[1]);
+    const typeHoursEntries = Object.entries(typeHours).sort((a, b) => b[1] - a[1]);
+    const monthEntries = Object.entries(monthCounts).sort((a, b) => a[0].localeCompare(b[0]));
+    const top15Objects = Object.entries(objectCounts)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 15);
+    const filterEntries = Object.entries(filterCounts).sort((a, b) => b[1] - a[1]);
 
-    const totalLogged    = typeEntries.reduce((sum, [, n]) => sum + n, 0);
+    const totalLogged = typeEntries.reduce((sum, [, n]) => sum + n, 0);
     const distinctObjects = Object.keys(objectCounts).length;
 
     // ── Build values array, tracking 0-indexed row counter ──────────────────
@@ -140,7 +150,7 @@ export async function createAnalyticsSheet(spreadsheetId: string) {
       '',
       `Total Integration: ${totalHours.toFixed(1)} hrs`,
       '',
-      firstDate  ? `First: ${firstDate}`   : '',
+      firstDate ? `First: ${firstDate}` : '',
       latestDate ? `Latest: ${latestDate}` : '',
       `Distinct objects: ${distinctObjects}`,
     ]);
@@ -157,7 +167,10 @@ export async function createAnalyticsSheet(spreadsheetId: string) {
     const blockA_colHeader = r;
     values.push(['Object Type', 'Sessions']);
     r++;
-    for (const [type, count] of typeEntries) { values.push([type, count]); r++; }
+    for (const [type, count] of typeEntries) {
+      values.push([type, count]);
+      r++;
+    }
     const blockA_dataEnd = r;
     values.push([]);
     r++;
@@ -169,7 +182,10 @@ export async function createAnalyticsSheet(spreadsheetId: string) {
     const blockB_colHeader = r;
     values.push(['Object Type', 'Hours']);
     r++;
-    for (const [type, hrs] of typeHoursEntries) { values.push([type, parseFloat(hrs.toFixed(2))]); r++; }
+    for (const [type, hrs] of typeHoursEntries) {
+      values.push([type, parseFloat(hrs.toFixed(2))]);
+      r++;
+    }
     const blockB_dataEnd = r;
     values.push([]);
     r++;
@@ -181,7 +197,10 @@ export async function createAnalyticsSheet(spreadsheetId: string) {
     const blockC_colHeader = r;
     values.push(['Month', 'Sessions']);
     r++;
-    for (const [month, count] of monthEntries) { values.push([month, count]); r++; }
+    for (const [month, count] of monthEntries) {
+      values.push([month, count]);
+      r++;
+    }
     const blockC_dataEnd = r;
     values.push([]);
     r++;
@@ -192,7 +211,10 @@ export async function createAnalyticsSheet(spreadsheetId: string) {
     r++;
     values.push(['Object', 'Sessions']);
     r++;
-    for (const [name, count] of top15Objects) { values.push([name, count]); r++; }
+    for (const [name, count] of top15Objects) {
+      values.push([name, count]);
+      r++;
+    }
     values.push([]);
     r++;
 
@@ -203,13 +225,16 @@ export async function createAnalyticsSheet(spreadsheetId: string) {
     const blockE_colHeader = r;
     values.push(['Filter', 'Sessions']);
     r++;
-    for (const [filter, count] of filterEntries) { values.push([filter, count]); r++; }
+    for (const [filter, count] of filterEntries) {
+      values.push([filter, count]);
+      r++;
+    }
     const blockE_dataEnd = r;
     values.push([]);
     r++;
 
     // Footer
-    values.push(['Total Logged Sessions',  totalLogged]);
+    values.push(['Total Logged Sessions', totalLogged]);
     values.push(['Total Integration Time', `${totalHours.toFixed(1)} hrs`]);
 
     await sheets.spreadsheets.values.update({
@@ -227,11 +252,21 @@ export async function createAnalyticsSheet(spreadsheetId: string) {
     // Title row
     requests.push({
       repeatCell: {
-        range: { sheetId, startRowIndex: 0, endRowIndex: 1, startColumnIndex: 0, endColumnIndex: 7 },
+        range: {
+          sheetId,
+          startRowIndex: 0,
+          endRowIndex: 1,
+          startColumnIndex: 0,
+          endColumnIndex: 7,
+        },
         cell: {
           userEnteredFormat: {
             backgroundColor: { red: 0.15, green: 0.35, blue: 0.55 },
-            textFormat: { bold: true, foregroundColor: { red: 1, green: 1, blue: 1 }, fontSize: 14 },
+            textFormat: {
+              bold: true,
+              foregroundColor: { red: 1, green: 1, blue: 1 },
+              fontSize: 14,
+            },
           },
         },
         fields: 'userEnteredFormat(backgroundColor,textFormat)',
@@ -241,7 +276,13 @@ export async function createAnalyticsSheet(spreadsheetId: string) {
     // Summary row
     requests.push({
       repeatCell: {
-        range: { sheetId, startRowIndex: 1, endRowIndex: 2, startColumnIndex: 0, endColumnIndex: 7 },
+        range: {
+          sheetId,
+          startRowIndex: 1,
+          endRowIndex: 2,
+          startColumnIndex: 0,
+          endColumnIndex: 7,
+        },
         cell: {
           userEnteredFormat: {
             backgroundColor: { red: 0.85, green: 0.92, blue: 1.0 },
@@ -253,10 +294,22 @@ export async function createAnalyticsSheet(spreadsheetId: string) {
     });
 
     // Section headers (gray bold)
-    for (const sRow of [blockA_section, blockB_section, blockC_section, blockD_section, blockE_section]) {
+    for (const sRow of [
+      blockA_section,
+      blockB_section,
+      blockC_section,
+      blockD_section,
+      blockE_section,
+    ]) {
       requests.push({
         repeatCell: {
-          range: { sheetId, startRowIndex: sRow, endRowIndex: sRow + 1, startColumnIndex: 0, endColumnIndex: 3 },
+          range: {
+            sheetId,
+            startRowIndex: sRow,
+            endRowIndex: sRow + 1,
+            startColumnIndex: 0,
+            endColumnIndex: 3,
+          },
           cell: {
             userEnteredFormat: {
               backgroundColor: { red: 0.9, green: 0.9, blue: 0.9 },
@@ -272,7 +325,13 @@ export async function createAnalyticsSheet(spreadsheetId: string) {
     for (const chRow of [blockA_colHeader, blockB_colHeader, blockC_colHeader, blockE_colHeader]) {
       requests.push({
         repeatCell: {
-          range: { sheetId, startRowIndex: chRow, endRowIndex: chRow + 1, startColumnIndex: 0, endColumnIndex: 3 },
+          range: {
+            sheetId,
+            startRowIndex: chRow,
+            endRowIndex: chRow + 1,
+            startColumnIndex: 0,
+            endColumnIndex: 3,
+          },
           cell: {
             userEnteredFormat: {
               backgroundColor: { red: 0.8, green: 0.9, blue: 1.0 },
@@ -286,13 +345,37 @@ export async function createAnalyticsSheet(spreadsheetId: string) {
     }
 
     requests.push(
-      { updateSheetProperties: { properties: { sheetId, gridProperties: { frozenRowCount: 1 } }, fields: 'gridProperties.frozenRowCount' } },
-      { updateDimensionProperties: { range: { sheetId, dimension: 'COLUMNS', startIndex: 0, endIndex: 1 }, properties: { pixelSize: 220 }, fields: 'pixelSize' } },
-      { updateDimensionProperties: { range: { sheetId, dimension: 'COLUMNS', startIndex: 1, endIndex: 2 }, properties: { pixelSize: 120 }, fields: 'pixelSize' } },
-      { updateDimensionProperties: { range: { sheetId, dimension: 'COLUMNS', startIndex: 3, endIndex: 4 }, properties: { pixelSize: 20 }, fields: 'pixelSize' } },
+      {
+        updateSheetProperties: {
+          properties: { sheetId, gridProperties: { frozenRowCount: 1 } },
+          fields: 'gridProperties.frozenRowCount',
+        },
+      },
+      {
+        updateDimensionProperties: {
+          range: { sheetId, dimension: 'COLUMNS', startIndex: 0, endIndex: 1 },
+          properties: { pixelSize: 220 },
+          fields: 'pixelSize',
+        },
+      },
+      {
+        updateDimensionProperties: {
+          range: { sheetId, dimension: 'COLUMNS', startIndex: 1, endIndex: 2 },
+          properties: { pixelSize: 120 },
+          fields: 'pixelSize',
+        },
+      },
+      {
+        updateDimensionProperties: {
+          range: { sheetId, dimension: 'COLUMNS', startIndex: 3, endIndex: 4 },
+          properties: { pixelSize: 20 },
+          fields: 'pixelSize',
+        },
+      }
     );
 
-    const W = 460, H = 280;
+    const W = 460,
+      H = 280;
     function anchorCell(rowIndex: number) {
       return { sheetId, rowIndex, columnIndex: 3 };
     }
@@ -307,11 +390,43 @@ export async function createAnalyticsSheet(spreadsheetId: string) {
               pieChart: {
                 legendPosition: 'RIGHT_LEGEND',
                 threeDimensional: false,
-                domain: { sourceRange: { sources: [{ sheetId, startRowIndex: blockA_colHeader, endRowIndex: blockA_dataEnd, startColumnIndex: 0, endColumnIndex: 1 }] } },
-                series: { sourceRange: { sources: [{ sheetId, startRowIndex: blockA_colHeader, endRowIndex: blockA_dataEnd, startColumnIndex: 1, endColumnIndex: 2 }] } },
+                domain: {
+                  sourceRange: {
+                    sources: [
+                      {
+                        sheetId,
+                        startRowIndex: blockA_colHeader,
+                        endRowIndex: blockA_dataEnd,
+                        startColumnIndex: 0,
+                        endColumnIndex: 1,
+                      },
+                    ],
+                  },
+                },
+                series: {
+                  sourceRange: {
+                    sources: [
+                      {
+                        sheetId,
+                        startRowIndex: blockA_colHeader,
+                        endRowIndex: blockA_dataEnd,
+                        startColumnIndex: 1,
+                        endColumnIndex: 2,
+                      },
+                    ],
+                  },
+                },
               },
             },
-            position: { overlayPosition: { anchorCell: anchorCell(blockA_colHeader), offsetXPixels: 16, offsetYPixels: 0, widthPixels: W, heightPixels: H } },
+            position: {
+              overlayPosition: {
+                anchorCell: anchorCell(blockA_colHeader),
+                offsetXPixels: 16,
+                offsetYPixels: 0,
+                widthPixels: W,
+                heightPixels: H,
+              },
+            },
           },
         },
       });
@@ -329,19 +444,55 @@ export async function createAnalyticsSheet(spreadsheetId: string) {
                 legendPosition: 'NO_LEGEND',
                 axis: [
                   { position: 'BOTTOM_AXIS', title: 'Hours' },
-                  { position: 'LEFT_AXIS',   title: 'Object Type' },
+                  { position: 'LEFT_AXIS', title: 'Object Type' },
                 ],
-                domains: [{
-                  domain: { sourceRange: { sources: [{ sheetId, startRowIndex: blockB_colHeader, endRowIndex: blockB_dataEnd, startColumnIndex: 0, endColumnIndex: 1 }] } },
-                }],
-                series: [{
-                  series: { sourceRange: { sources: [{ sheetId, startRowIndex: blockB_colHeader, endRowIndex: blockB_dataEnd, startColumnIndex: 1, endColumnIndex: 2 }] } },
-                  targetAxis: 'BOTTOM_AXIS',
-                }],
+                domains: [
+                  {
+                    domain: {
+                      sourceRange: {
+                        sources: [
+                          {
+                            sheetId,
+                            startRowIndex: blockB_colHeader,
+                            endRowIndex: blockB_dataEnd,
+                            startColumnIndex: 0,
+                            endColumnIndex: 1,
+                          },
+                        ],
+                      },
+                    },
+                  },
+                ],
+                series: [
+                  {
+                    series: {
+                      sourceRange: {
+                        sources: [
+                          {
+                            sheetId,
+                            startRowIndex: blockB_colHeader,
+                            endRowIndex: blockB_dataEnd,
+                            startColumnIndex: 1,
+                            endColumnIndex: 2,
+                          },
+                        ],
+                      },
+                    },
+                    targetAxis: 'BOTTOM_AXIS',
+                  },
+                ],
                 headerCount: 1,
               },
             },
-            position: { overlayPosition: { anchorCell: anchorCell(blockB_colHeader), offsetXPixels: 16, offsetYPixels: 0, widthPixels: W, heightPixels: H } },
+            position: {
+              overlayPosition: {
+                anchorCell: anchorCell(blockB_colHeader),
+                offsetXPixels: 16,
+                offsetYPixels: 0,
+                widthPixels: W,
+                heightPixels: H,
+              },
+            },
           },
         },
       });
@@ -359,19 +510,55 @@ export async function createAnalyticsSheet(spreadsheetId: string) {
                 legendPosition: 'NO_LEGEND',
                 axis: [
                   { position: 'BOTTOM_AXIS', title: 'Month' },
-                  { position: 'LEFT_AXIS',   title: 'Sessions' },
+                  { position: 'LEFT_AXIS', title: 'Sessions' },
                 ],
-                domains: [{
-                  domain: { sourceRange: { sources: [{ sheetId, startRowIndex: blockC_colHeader, endRowIndex: blockC_dataEnd, startColumnIndex: 0, endColumnIndex: 1 }] } },
-                }],
-                series: [{
-                  series: { sourceRange: { sources: [{ sheetId, startRowIndex: blockC_colHeader, endRowIndex: blockC_dataEnd, startColumnIndex: 1, endColumnIndex: 2 }] } },
-                  targetAxis: 'LEFT_AXIS',
-                }],
+                domains: [
+                  {
+                    domain: {
+                      sourceRange: {
+                        sources: [
+                          {
+                            sheetId,
+                            startRowIndex: blockC_colHeader,
+                            endRowIndex: blockC_dataEnd,
+                            startColumnIndex: 0,
+                            endColumnIndex: 1,
+                          },
+                        ],
+                      },
+                    },
+                  },
+                ],
+                series: [
+                  {
+                    series: {
+                      sourceRange: {
+                        sources: [
+                          {
+                            sheetId,
+                            startRowIndex: blockC_colHeader,
+                            endRowIndex: blockC_dataEnd,
+                            startColumnIndex: 1,
+                            endColumnIndex: 2,
+                          },
+                        ],
+                      },
+                    },
+                    targetAxis: 'LEFT_AXIS',
+                  },
+                ],
                 headerCount: 1,
               },
             },
-            position: { overlayPosition: { anchorCell: anchorCell(blockC_colHeader), offsetXPixels: 16, offsetYPixels: 0, widthPixels: W, heightPixels: H } },
+            position: {
+              overlayPosition: {
+                anchorCell: anchorCell(blockC_colHeader),
+                offsetXPixels: 16,
+                offsetYPixels: 0,
+                widthPixels: W,
+                heightPixels: H,
+              },
+            },
           },
         },
       });
@@ -387,11 +574,43 @@ export async function createAnalyticsSheet(spreadsheetId: string) {
               pieChart: {
                 legendPosition: 'RIGHT_LEGEND',
                 threeDimensional: false,
-                domain: { sourceRange: { sources: [{ sheetId, startRowIndex: blockE_colHeader, endRowIndex: blockE_dataEnd, startColumnIndex: 0, endColumnIndex: 1 }] } },
-                series: { sourceRange: { sources: [{ sheetId, startRowIndex: blockE_colHeader, endRowIndex: blockE_dataEnd, startColumnIndex: 1, endColumnIndex: 2 }] } },
+                domain: {
+                  sourceRange: {
+                    sources: [
+                      {
+                        sheetId,
+                        startRowIndex: blockE_colHeader,
+                        endRowIndex: blockE_dataEnd,
+                        startColumnIndex: 0,
+                        endColumnIndex: 1,
+                      },
+                    ],
+                  },
+                },
+                series: {
+                  sourceRange: {
+                    sources: [
+                      {
+                        sheetId,
+                        startRowIndex: blockE_colHeader,
+                        endRowIndex: blockE_dataEnd,
+                        startColumnIndex: 1,
+                        endColumnIndex: 2,
+                      },
+                    ],
+                  },
+                },
               },
             },
-            position: { overlayPosition: { anchorCell: anchorCell(blockE_colHeader), offsetXPixels: 16, offsetYPixels: 0, widthPixels: W, heightPixels: H } },
+            position: {
+              overlayPosition: {
+                anchorCell: anchorCell(blockE_colHeader),
+                offsetXPixels: 16,
+                offsetYPixels: 0,
+                widthPixels: W,
+                heightPixels: H,
+              },
+            },
           },
         },
       });

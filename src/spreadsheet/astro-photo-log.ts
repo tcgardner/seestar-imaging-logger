@@ -1,4 +1,4 @@
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { createSheetsClient } from './sheets.js';
 import { SERVICE_ACCOUNT_FILE } from '../env.js';
 
@@ -73,7 +73,10 @@ function getColumnLetter(columnIndex: number) {
   return columnName;
 }
 
-export async function addObjectTypeColorRules(spreadsheetId: string, sheetName = 'Astro Photo Log') {
+export async function addObjectTypeColorRules(
+  spreadsheetId: string,
+  sheetName = 'Astro Photo Log'
+) {
   try {
     const sheets = createSheetsClient();
 
@@ -87,7 +90,7 @@ export async function addObjectTypeColorRules(spreadsheetId: string, sheetName =
     });
     const headers = headerRes.data.values?.[0] || [];
     const objectTypeColIndex = headers.findIndex(
-      (header) => String(header).trim().toUpperCase() === 'OBJECT TYPE'
+      header => String(header).trim().toUpperCase() === 'OBJECT TYPE'
     );
     const finalObjectTypeColIndex = objectTypeColIndex >= 0 ? objectTypeColIndex : 2;
     const objectTypeColumn = getColumnLetter(finalObjectTypeColIndex);
@@ -105,7 +108,9 @@ export async function addObjectTypeColorRules(spreadsheetId: string, sheetName =
           requestBody: { requests: deleteRequests },
         });
       } catch (delErr: any) {
-        console.warn(`⚠️ Could not delete ${existingRuleCount} old color rule(s): ${delErr.message}`);
+        console.warn(
+          `⚠️ Could not delete ${existingRuleCount} old color rule(s): ${delErr.message}`
+        );
       }
     }
 
@@ -113,15 +118,15 @@ export async function addObjectTypeColorRules(spreadsheetId: string, sheetName =
     const cleanedObjectType = `UPPER(TRIM(REGEXEXTRACT(${objectTypeCell}, "^[^\\(]+")))`;
 
     const colorRules = [
-      { pattern: 'Nebula',       color: { red: 0.85, green: 0.7,  blue: 0.95 } },
-      { pattern: 'Galaxy',       color: { red: 0.7,  green: 0.8,  blue: 1.0  } },
-      { pattern: 'Star Cluster', color: { red: 1.0,  green: 0.92, blue: 0.45 } },
-      { pattern: 'Cluster',      color: { red: 1.0,  green: 0.85, blue: 0.7  } },
-      { pattern: 'Planet',       color: { red: 1.0,  green: 0.95, blue: 0.7  } },
-      { pattern: 'Moon',         color: { red: 1.0,  green: 0.95, blue: 0.7  } },
-      { pattern: 'Sun',          color: { red: 1.0,  green: 0.95, blue: 0.7  } },
-      { pattern: 'Milky Way',    color: { red: 0.7,  green: 0.95, blue: 0.9  } },
-      { pattern: 'Landscape',    color: { red: 0.8,  green: 1.0,  blue: 0.8  } },
+      { pattern: 'Nebula', color: { red: 0.85, green: 0.7, blue: 0.95 } },
+      { pattern: 'Galaxy', color: { red: 0.7, green: 0.8, blue: 1.0 } },
+      { pattern: 'Star Cluster', color: { red: 1.0, green: 0.92, blue: 0.45 } },
+      { pattern: 'Cluster', color: { red: 1.0, green: 0.85, blue: 0.7 } },
+      { pattern: 'Planet', color: { red: 1.0, green: 0.95, blue: 0.7 } },
+      { pattern: 'Moon', color: { red: 1.0, green: 0.95, blue: 0.7 } },
+      { pattern: 'Sun', color: { red: 1.0, green: 0.95, blue: 0.7 } },
+      { pattern: 'Milky Way', color: { red: 0.7, green: 0.95, blue: 0.9 } },
+      { pattern: 'Landscape', color: { red: 0.8, green: 1.0, blue: 0.8 } },
     ];
 
     const addRequests: any[] = [];
@@ -135,7 +140,9 @@ export async function addObjectTypeColorRules(spreadsheetId: string, sheetName =
             booleanRule: {
               condition: {
                 type: 'CUSTOM_FORMULA',
-                values: [{ userEnteredValue: `=REGEXMATCH(${cleanedObjectType}, "^${patternRegex}$")` }],
+                values: [
+                  { userEnteredValue: `=REGEXMATCH(${cleanedObjectType}, "^${patternRegex}$")` },
+                ],
               },
               format: { backgroundColor: rule.color },
             },
@@ -156,7 +163,11 @@ export async function addObjectTypeColorRules(spreadsheetId: string, sheetName =
           booleanRule: {
             condition: {
               type: 'CUSTOM_FORMULA',
-              values: [{ userEnteredValue: `=AND(NOT(ISBLANK(${objectTypeCell})), NOT(REGEXMATCH(${cleanedObjectType}, "^(${masterPattern})$")))` }],
+              values: [
+                {
+                  userEnteredValue: `=AND(NOT(ISBLANK(${objectTypeCell})), NOT(REGEXMATCH(${cleanedObjectType}, "^(${masterPattern})$")))`,
+                },
+              ],
             },
             format: { backgroundColor: { red: 0.95, green: 0.95, blue: 0.95 } },
           },
@@ -207,6 +218,98 @@ export async function ensureSheetSetup(spreadsheetId: string, sheetName = 'Astro
   }
 }
 
+function parseCsvLine(line: string): string[] {
+  const result: string[] = [];
+  let i = 0;
+  while (i < line.length) {
+    if (line[i] === '"') {
+      let field = '';
+      i++;
+      while (i < line.length) {
+        if (line[i] === '"') {
+          if (line[i + 1] === '"') {
+            field += '"';
+            i += 2;
+          } else {
+            i++;
+            break;
+          }
+        } else {
+          field += line[i++];
+        }
+      }
+      result.push(field);
+      if (line[i] === ',') i++;
+    } else {
+      const end = line.indexOf(',', i);
+      if (end === -1) {
+        result.push(line.slice(i));
+        break;
+      }
+      result.push(line.slice(i, end));
+      i = end + 1;
+    }
+  }
+  return result;
+}
+
+export async function syncCsvToSheet(spreadsheetId: string, csvPath: string): Promise<number> {
+  if (!existsSync(SERVICE_ACCOUNT_FILE) || !existsSync(csvPath)) return 0;
+
+  try {
+    const csvContent = readFileSync(csvPath, 'utf-8');
+    const lines = csvContent.split(/\r?\n/).filter(l => l.trim());
+    if (lines.length <= 1) return 0;
+
+    const headers = parseCsvLine(lines[0]);
+    const fitsIdx = headers.findIndex(h => h.toLowerCase().includes('fits file path'));
+    if (fitsIdx < 0) return 0;
+
+    const csvRows = lines.slice(1).map(line => {
+      const cells = parseCsvLine(line);
+      const row: Record<string, string> = {};
+      headers.forEach((h, i) => {
+        row[h] = cells[i] ?? '';
+      });
+      return row;
+    });
+
+    const sheets = createSheetsClient();
+    const res = await sheets.spreadsheets.values.get({
+      spreadsheetId,
+      range: 'Astro Photo Log!A:Z',
+    });
+    const logValues = res.data.values || [];
+
+    const sheetHeaders = logValues[0] || [];
+    const sheetFitsIdx = sheetHeaders.findIndex((h: any) =>
+      h?.toString().toLowerCase().includes('fits file path')
+    );
+
+    const existingPaths = new Set<string>();
+    for (const row of logValues.slice(1)) {
+      const p = sheetFitsIdx >= 0 ? row[sheetFitsIdx]?.toString().trim() : undefined;
+      if (p) existingPaths.add(p);
+    }
+
+    const missing = csvRows.filter(row => {
+      const p = row['FITS File Path']?.trim();
+      return p && !existingPaths.has(p);
+    });
+
+    if (missing.length === 0) return 0;
+
+    console.log(
+      `🔄 Syncing ${missing.length} session(s) from CSV that are missing in spreadsheet...`
+    );
+    await appendToGoogleSheet(spreadsheetId, missing);
+    return missing.length;
+  } catch (err: any) {
+    console.warn('⚠️ CSV→Sheet sync failed:', err.message);
+    return 0;
+  }
+}
+
 export async function appendToGoogleSheet(spreadsheetId: string, rows: any[]) {
   if (!existsSync(SERVICE_ACCOUNT_FILE)) {
     console.warn('⚠️ service-account.json not found – skipping Google Sheets export.');
@@ -233,7 +336,9 @@ export async function appendToGoogleSheet(spreadsheetId: string, rows: any[]) {
   } catch (err: any) {
     console.error('❌ Google Sheets append failed:', err.message);
     if (err.message.includes('403')) {
-      console.error('   → Make sure the service account email has **Editor** access to the spreadsheet.');
+      console.error(
+        '   → Make sure the service account email has **Editor** access to the spreadsheet.'
+      );
     }
     return false;
   }

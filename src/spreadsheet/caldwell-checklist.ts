@@ -11,39 +11,119 @@ import {
 // Maps each Caldwell key to its NGC/IC equivalents so log entries stored by NGC/IC
 // catalog ID (as the Seestar FITS headers do) can be matched to Caldwell objects.
 const CALDWELL_NGC_ALIASES: Record<string, string[]> = {
-  C1: ['NGC188'], C2: ['NGC40'], C3: ['NGC4236'], C4: ['NGC7023'],
-  C5: ['IC342'], C6: ['NGC6543'], C7: ['NGC2403'], C8: ['NGC559'],
-  C10: ['NGC663'], C11: ['NGC7635'], C12: ['NGC6946'], C13: ['NGC457'],
-  C14: ['NGC869', 'NGC884'], C15: ['NGC6826'], C16: ['NGC7243'],
-  C17: ['NGC147'], C18: ['NGC185'], C19: ['IC5146'], C20: ['NGC7000'],
-  C21: ['NGC4449'], C22: ['NGC7662'], C23: ['NGC891'], C24: ['NGC1275'],
-  C25: ['NGC2419'], C26: ['NGC4244'], C27: ['NGC6888'], C28: ['NGC752'],
-  C29: ['NGC5005'], C30: ['NGC7331'], C31: ['IC405'], C32: ['NGC4631'],
-  C33: ['NGC6992', 'NGC6995'], C34: ['NGC6960'], C35: ['NGC4889'],
-  C36: ['NGC4559'], C37: ['NGC6885'], C38: ['NGC4565'], C39: ['NGC2392'],
-  C40: ['NGC3626'], C42: ['NGC7006'], C43: ['NGC7814'], C44: ['NGC7479'],
-  C45: ['NGC5248'], C46: ['NGC2261'], C47: ['NGC6934'], C48: ['NGC2775'],
-  C49: ['NGC2237', 'NGC2244'], C50: ['NGC2244'], C51: ['NGC1613'],
-  C52: ['NGC4697'], C53: ['NGC3115'], C54: ['NGC2506'], C55: ['NGC7009'],
-  C56: ['NGC246'], C57: ['NGC6822'], C58: ['NGC2360'], C59: ['NGC3242'],
-  C60: ['NGC4038'], C61: ['NGC4039'], C62: ['NGC247'], C63: ['NGC7293'],
-  C64: ['NGC2362'], C65: ['NGC253'], C66: ['NGC5694'], C67: ['NGC1097'],
-  C68: ['NGC6729'], C69: ['NGC6302'], C70: ['NGC300'], C71: ['NGC2477'],
-  C72: ['NGC55'], C73: ['NGC1851'], C74: ['NGC3132'], C75: ['NGC6124'],
-  C76: ['NGC6231'], C77: ['NGC5128'], C78: ['NGC6541'], C79: ['NGC3201'],
-  C80: ['NGC5139'], C81: ['NGC6352'], C82: ['NGC6193'], C83: ['NGC4945'],
-  C84: ['NGC5286'], C85: ['IC2391'], C86: ['NGC6397'], C87: ['NGC1261'],
-  C88: ['NGC5823'], C89: ['NGC6087'], C90: ['NGC2867'], C91: ['NGC3532'],
-  C92: ['NGC3372'], C93: ['NGC6752'], C94: ['NGC4755'], C95: ['NGC6025'],
-  C96: ['NGC2516'], C97: ['NGC3766'], C98: ['NGC4609'], C100: ['IC2944'],
-  C101: ['NGC6744'], C102: ['IC2602'], C103: ['NGC2070'], C104: ['NGC362'],
-  C105: ['NGC4833'], C106: ['NGC104'], C107: ['NGC6101'], C108: ['NGC4372'],
+  C1: ['NGC188'],
+  C2: ['NGC40'],
+  C3: ['NGC4236'],
+  C4: ['NGC7023'],
+  C5: ['IC342'],
+  C6: ['NGC6543'],
+  C7: ['NGC2403'],
+  C8: ['NGC559'],
+  C10: ['NGC663'],
+  C11: ['NGC7635'],
+  C12: ['NGC6946'],
+  C13: ['NGC457'],
+  C14: ['NGC869', 'NGC884'],
+  C15: ['NGC6826'],
+  C16: ['NGC7243'],
+  C17: ['NGC147'],
+  C18: ['NGC185'],
+  C19: ['IC5146'],
+  C20: ['NGC7000'],
+  C21: ['NGC4449'],
+  C22: ['NGC7662'],
+  C23: ['NGC891'],
+  C24: ['NGC1275'],
+  C25: ['NGC2419'],
+  C26: ['NGC4244'],
+  C27: ['NGC6888'],
+  C28: ['NGC752'],
+  C29: ['NGC5005'],
+  C30: ['NGC7331'],
+  C31: ['IC405'],
+  C32: ['NGC4631'],
+  C33: ['NGC6992', 'NGC6995'],
+  C34: ['NGC6960'],
+  C35: ['NGC4889'],
+  C36: ['NGC4559'],
+  C37: ['NGC6885'],
+  C38: ['NGC4565'],
+  C39: ['NGC2392'],
+  C40: ['NGC3626'],
+  C42: ['NGC7006'],
+  C43: ['NGC7814'],
+  C44: ['NGC7479'],
+  C45: ['NGC5248'],
+  C46: ['NGC2261'],
+  C47: ['NGC6934'],
+  C48: ['NGC2775'],
+  C49: ['NGC2237', 'NGC2244'],
+  C50: ['NGC2244'],
+  C51: ['NGC1613'],
+  C52: ['NGC4697'],
+  C53: ['NGC3115'],
+  C54: ['NGC2506'],
+  C55: ['NGC7009'],
+  C56: ['NGC246'],
+  C57: ['NGC6822'],
+  C58: ['NGC2360'],
+  C59: ['NGC3242'],
+  C60: ['NGC4038'],
+  C61: ['NGC4039'],
+  C62: ['NGC247'],
+  C63: ['NGC7293'],
+  C64: ['NGC2362'],
+  C65: ['NGC253'],
+  C66: ['NGC5694'],
+  C67: ['NGC1097'],
+  C68: ['NGC6729'],
+  C69: ['NGC6302'],
+  C70: ['NGC300'],
+  C71: ['NGC2477'],
+  C72: ['NGC55'],
+  C73: ['NGC1851'],
+  C74: ['NGC3132'],
+  C75: ['NGC6124'],
+  C76: ['NGC6231'],
+  C77: ['NGC5128'],
+  C78: ['NGC6541'],
+  C79: ['NGC3201'],
+  C80: ['NGC5139'],
+  C81: ['NGC6352'],
+  C82: ['NGC6193'],
+  C83: ['NGC4945'],
+  C84: ['NGC5286'],
+  C85: ['IC2391'],
+  C86: ['NGC6397'],
+  C87: ['NGC1261'],
+  C88: ['NGC5823'],
+  C89: ['NGC6087'],
+  C90: ['NGC2867'],
+  C91: ['NGC3532'],
+  C92: ['NGC3372'],
+  C93: ['NGC6752'],
+  C94: ['NGC4755'],
+  C95: ['NGC6025'],
+  C96: ['NGC2516'],
+  C97: ['NGC3766'],
+  C98: ['NGC4609'],
+  C100: ['IC2944'],
+  C101: ['NGC6744'],
+  C102: ['IC2602'],
+  C103: ['NGC2070'],
+  C104: ['NGC362'],
+  C105: ['NGC4833'],
+  C106: ['NGC104'],
+  C107: ['NGC6101'],
+  C108: ['NGC4372'],
   C109: ['NGC3195'],
 };
 
 function getSheetIdByTitle(spreadsheet: any, title: string): number {
-  return spreadsheet.data.sheets?.find((s: any) => s.properties?.title === title)
-    ?.properties?.sheetId ?? 0;
+  return (
+    spreadsheet.data.sheets?.find((s: any) => s.properties?.title === title)?.properties?.sheetId ??
+    0
+  );
 }
 
 export async function createCaldwellChecklistSheet(spreadsheetId: string) {
@@ -96,7 +176,9 @@ export async function createCaldwellChecklistSheet(spreadsheetId: string) {
       });
       logValues = logRes.data.values || [];
     } catch (logErr: any) {
-      console.warn(`⚠️ Could not read ${mainSheetName}; checklist will still be created without session history.`);
+      console.warn(
+        `⚠️ Could not read ${mainSheetName}; checklist will still be created without session history.`
+      );
     }
 
     const headerRowIndex = findHeaderRow(logValues, true);
@@ -105,7 +187,14 @@ export async function createCaldwellChecklistSheet(spreadsheetId: string) {
 
     const { catalogColumnIdx, dateColumnIdx } = detectColumns(headers, logs);
 
-    debugChecklistDetection(mainSheetName, headerRowIndex, headers, catalogColumnIdx, dateColumnIdx, logs);
+    debugChecklistDetection(
+      mainSheetName,
+      headerRowIndex,
+      headers,
+      catalogColumnIdx,
+      dateColumnIdx,
+      logs
+    );
 
     const rawCatalogLogs = buildCatalogLogs(logs, catalogColumnIdx, dateColumnIdx);
 
@@ -134,7 +223,19 @@ export async function createCaldwellChecklistSheet(spreadsheetId: string) {
     const col3 = caldwellObjects.slice(74, 110);
 
     const data: any[] = [
-      ['Caldwell #', 'Object Name', 'Logs', '', 'Caldwell #', 'Object Name', 'Logs', '', 'Caldwell #', 'Object Name', 'Logs'],
+      [
+        'Caldwell #',
+        'Object Name',
+        'Logs',
+        '',
+        'Caldwell #',
+        'Object Name',
+        'Logs',
+        '',
+        'Caldwell #',
+        'Object Name',
+        'Logs',
+      ],
     ];
 
     const maxRows = Math.max(col1.length, col2.length, col3.length);
@@ -146,7 +247,11 @@ export async function createCaldwellChecklistSheet(spreadsheetId: string) {
 
       if (obj1) {
         const entries1 = catalogLogs[normalizeCatalogId(obj1.catalog)] || [];
-        row.push(obj1.catalog, obj1.name, entries1.length > 0 ? `${entries1.length} (${entries1.join(', ')})` : '-');
+        row.push(
+          obj1.catalog,
+          obj1.name,
+          entries1.length > 0 ? `${entries1.length} (${entries1.join(', ')})` : '-'
+        );
       } else {
         row.push('', '', '');
       }
@@ -154,7 +259,11 @@ export async function createCaldwellChecklistSheet(spreadsheetId: string) {
 
       if (obj2) {
         const entries2 = catalogLogs[normalizeCatalogId(obj2.catalog)] || [];
-        row.push(obj2.catalog, obj2.name, entries2.length > 0 ? `${entries2.length} (${entries2.join(', ')})` : '-');
+        row.push(
+          obj2.catalog,
+          obj2.name,
+          entries2.length > 0 ? `${entries2.length} (${entries2.join(', ')})` : '-'
+        );
       } else {
         row.push('', '', '');
       }
@@ -162,7 +271,11 @@ export async function createCaldwellChecklistSheet(spreadsheetId: string) {
 
       if (obj3) {
         const entries3 = catalogLogs[normalizeCatalogId(obj3.catalog)] || [];
-        row.push(obj3.catalog, obj3.name, entries3.length > 0 ? `${entries3.length} (${entries3.join(', ')})` : '-');
+        row.push(
+          obj3.catalog,
+          obj3.name,
+          entries3.length > 0 ? `${entries3.length} (${entries3.join(', ')})` : '-'
+        );
       } else {
         row.push('', '', '');
       }
@@ -170,13 +283,27 @@ export async function createCaldwellChecklistSheet(spreadsheetId: string) {
       data.push(row);
     }
 
-    const totalLogged = caldwellObjects.filter(obj => (catalogLogs[normalizeCatalogId(obj.catalog)] || []).length > 0).length;
+    const totalLogged = caldwellObjects.filter(
+      obj => (catalogLogs[normalizeCatalogId(obj.catalog)] || []).length > 0
+    ).length;
     const progressPercent = Math.round((totalLogged / 110) * 100);
 
     data.push([]);
     data.push(['Summary', '', '', '', '', '', '', '', '', '', '']);
     data.push(['Total Caldwell Objects', 110, '', '', 'Logged', totalLogged, '', '', '', '', '']);
-    data.push(['Progress', `${progressPercent}%`, '', '', 'Remaining', 110 - totalLogged, '', '', '', '', '']);
+    data.push([
+      'Progress',
+      `${progressPercent}%`,
+      '',
+      '',
+      'Remaining',
+      110 - totalLogged,
+      '',
+      '',
+      '',
+      '',
+      '',
+    ]);
 
     await sheets.spreadsheets.values.update({
       spreadsheetId,
@@ -195,11 +322,21 @@ export async function createCaldwellChecklistSheet(spreadsheetId: string) {
           requests: [
             {
               repeatCell: {
-                range: { sheetId, startRowIndex: 0, endRowIndex: 1, startColumnIndex: 0, endColumnIndex: 11 },
+                range: {
+                  sheetId,
+                  startRowIndex: 0,
+                  endRowIndex: 1,
+                  startColumnIndex: 0,
+                  endColumnIndex: 11,
+                },
                 cell: {
                   userEnteredFormat: {
                     backgroundColor: { red: 0.8, green: 0.2, blue: 0.2 },
-                    textFormat: { bold: true, foregroundColor: { red: 1, green: 1, blue: 1 }, fontSize: 12 },
+                    textFormat: {
+                      bold: true,
+                      foregroundColor: { red: 1, green: 1, blue: 1 },
+                      fontSize: 12,
+                    },
                     horizontalAlignment: 'CENTER',
                   },
                 },
@@ -209,9 +346,20 @@ export async function createCaldwellChecklistSheet(spreadsheetId: string) {
             {
               addConditionalFormatRule: {
                 rule: {
-                  ranges: [{ sheetId, startRowIndex: 1, endRowIndex: summaryStartRow, startColumnIndex: 0, endColumnIndex: 3 }],
+                  ranges: [
+                    {
+                      sheetId,
+                      startRowIndex: 1,
+                      endRowIndex: summaryStartRow,
+                      startColumnIndex: 0,
+                      endColumnIndex: 3,
+                    },
+                  ],
                   booleanRule: {
-                    condition: { type: 'CUSTOM_FORMULA', values: [{ userEnteredValue: '=AND($C2<>"", $C2<>"-")' }] },
+                    condition: {
+                      type: 'CUSTOM_FORMULA',
+                      values: [{ userEnteredValue: '=AND($C2<>"", $C2<>"-")' }],
+                    },
                     format: { backgroundColor: { red: 0.85, green: 1, blue: 0.8 } },
                   },
                 },
@@ -221,9 +369,20 @@ export async function createCaldwellChecklistSheet(spreadsheetId: string) {
             {
               addConditionalFormatRule: {
                 rule: {
-                  ranges: [{ sheetId, startRowIndex: 1, endRowIndex: summaryStartRow, startColumnIndex: 4, endColumnIndex: 7 }],
+                  ranges: [
+                    {
+                      sheetId,
+                      startRowIndex: 1,
+                      endRowIndex: summaryStartRow,
+                      startColumnIndex: 4,
+                      endColumnIndex: 7,
+                    },
+                  ],
                   booleanRule: {
-                    condition: { type: 'CUSTOM_FORMULA', values: [{ userEnteredValue: '=AND($G2<>"", $G2<>"-")' }] },
+                    condition: {
+                      type: 'CUSTOM_FORMULA',
+                      values: [{ userEnteredValue: '=AND($G2<>"", $G2<>"-")' }],
+                    },
                     format: { backgroundColor: { red: 0.85, green: 1, blue: 0.8 } },
                   },
                 },
@@ -233,9 +392,20 @@ export async function createCaldwellChecklistSheet(spreadsheetId: string) {
             {
               addConditionalFormatRule: {
                 rule: {
-                  ranges: [{ sheetId, startRowIndex: 1, endRowIndex: summaryStartRow, startColumnIndex: 8, endColumnIndex: 11 }],
+                  ranges: [
+                    {
+                      sheetId,
+                      startRowIndex: 1,
+                      endRowIndex: summaryStartRow,
+                      startColumnIndex: 8,
+                      endColumnIndex: 11,
+                    },
+                  ],
                   booleanRule: {
-                    condition: { type: 'CUSTOM_FORMULA', values: [{ userEnteredValue: '=AND($K2<>"", $K2<>"-")' }] },
+                    condition: {
+                      type: 'CUSTOM_FORMULA',
+                      values: [{ userEnteredValue: '=AND($K2<>"", $K2<>"-")' }],
+                    },
                     format: { backgroundColor: { red: 0.85, green: 1, blue: 0.8 } },
                   },
                 },
@@ -244,7 +414,13 @@ export async function createCaldwellChecklistSheet(spreadsheetId: string) {
             },
             {
               repeatCell: {
-                range: { sheetId, startRowIndex: summaryStartRow - 1, endRowIndex: maxRowIndex, startColumnIndex: 0, endColumnIndex: 11 },
+                range: {
+                  sheetId,
+                  startRowIndex: summaryStartRow - 1,
+                  endRowIndex: maxRowIndex,
+                  startColumnIndex: 0,
+                  endColumnIndex: 11,
+                },
                 cell: {
                   userEnteredFormat: {
                     backgroundColor: { red: 0.95, green: 0.8, blue: 0.8 },
@@ -280,17 +456,83 @@ export async function createCaldwellChecklistSheet(spreadsheetId: string) {
         spreadsheetId,
         requestBody: {
           requests: [
-            { updateDimensionProperties: { range: { sheetId, dimension: 'COLUMNS', startIndex: 0, endIndex: 1 }, properties: { pixelSize: 90 }, fields: 'pixelSize' } },
-            { updateDimensionProperties: { range: { sheetId, dimension: 'COLUMNS', startIndex: 1, endIndex: 2 }, properties: { pixelSize: 200 }, fields: 'pixelSize' } },
-            { updateDimensionProperties: { range: { sheetId, dimension: 'COLUMNS', startIndex: 2, endIndex: 3 }, properties: { pixelSize: 220 }, fields: 'pixelSize' } },
-            { updateDimensionProperties: { range: { sheetId, dimension: 'COLUMNS', startIndex: 3, endIndex: 4 }, properties: { pixelSize: 20 }, fields: 'pixelSize' } },
-            { updateDimensionProperties: { range: { sheetId, dimension: 'COLUMNS', startIndex: 4, endIndex: 5 }, properties: { pixelSize: 90 }, fields: 'pixelSize' } },
-            { updateDimensionProperties: { range: { sheetId, dimension: 'COLUMNS', startIndex: 5, endIndex: 6 }, properties: { pixelSize: 200 }, fields: 'pixelSize' } },
-            { updateDimensionProperties: { range: { sheetId, dimension: 'COLUMNS', startIndex: 6, endIndex: 7 }, properties: { pixelSize: 220 }, fields: 'pixelSize' } },
-            { updateDimensionProperties: { range: { sheetId, dimension: 'COLUMNS', startIndex: 7, endIndex: 8 }, properties: { pixelSize: 20 }, fields: 'pixelSize' } },
-            { updateDimensionProperties: { range: { sheetId, dimension: 'COLUMNS', startIndex: 8, endIndex: 9 }, properties: { pixelSize: 90 }, fields: 'pixelSize' } },
-            { updateDimensionProperties: { range: { sheetId, dimension: 'COLUMNS', startIndex: 9, endIndex: 10 }, properties: { pixelSize: 200 }, fields: 'pixelSize' } },
-            { updateDimensionProperties: { range: { sheetId, dimension: 'COLUMNS', startIndex: 10, endIndex: 11 }, properties: { pixelSize: 220 }, fields: 'pixelSize' } },
+            {
+              updateDimensionProperties: {
+                range: { sheetId, dimension: 'COLUMNS', startIndex: 0, endIndex: 1 },
+                properties: { pixelSize: 90 },
+                fields: 'pixelSize',
+              },
+            },
+            {
+              updateDimensionProperties: {
+                range: { sheetId, dimension: 'COLUMNS', startIndex: 1, endIndex: 2 },
+                properties: { pixelSize: 200 },
+                fields: 'pixelSize',
+              },
+            },
+            {
+              updateDimensionProperties: {
+                range: { sheetId, dimension: 'COLUMNS', startIndex: 2, endIndex: 3 },
+                properties: { pixelSize: 220 },
+                fields: 'pixelSize',
+              },
+            },
+            {
+              updateDimensionProperties: {
+                range: { sheetId, dimension: 'COLUMNS', startIndex: 3, endIndex: 4 },
+                properties: { pixelSize: 20 },
+                fields: 'pixelSize',
+              },
+            },
+            {
+              updateDimensionProperties: {
+                range: { sheetId, dimension: 'COLUMNS', startIndex: 4, endIndex: 5 },
+                properties: { pixelSize: 90 },
+                fields: 'pixelSize',
+              },
+            },
+            {
+              updateDimensionProperties: {
+                range: { sheetId, dimension: 'COLUMNS', startIndex: 5, endIndex: 6 },
+                properties: { pixelSize: 200 },
+                fields: 'pixelSize',
+              },
+            },
+            {
+              updateDimensionProperties: {
+                range: { sheetId, dimension: 'COLUMNS', startIndex: 6, endIndex: 7 },
+                properties: { pixelSize: 220 },
+                fields: 'pixelSize',
+              },
+            },
+            {
+              updateDimensionProperties: {
+                range: { sheetId, dimension: 'COLUMNS', startIndex: 7, endIndex: 8 },
+                properties: { pixelSize: 20 },
+                fields: 'pixelSize',
+              },
+            },
+            {
+              updateDimensionProperties: {
+                range: { sheetId, dimension: 'COLUMNS', startIndex: 8, endIndex: 9 },
+                properties: { pixelSize: 90 },
+                fields: 'pixelSize',
+              },
+            },
+            {
+              updateDimensionProperties: {
+                range: { sheetId, dimension: 'COLUMNS', startIndex: 9, endIndex: 10 },
+                properties: { pixelSize: 200 },
+                fields: 'pixelSize',
+              },
+            },
+            {
+              updateDimensionProperties: {
+                range: { sheetId, dimension: 'COLUMNS', startIndex: 10, endIndex: 11 },
+                properties: { pixelSize: 220 },
+                fields: 'pixelSize',
+              },
+            },
           ],
         },
       });
@@ -298,7 +540,9 @@ export async function createCaldwellChecklistSheet(spreadsheetId: string) {
       console.warn('⚠️ Column width update failed (non-critical):', widthErr.message);
     }
 
-    console.log(`✅ Caldwell Checklist updated: ${totalLogged}/110 objects logged (${progressPercent}%)`);
+    console.log(
+      `✅ Caldwell Checklist updated: ${totalLogged}/110 objects logged (${progressPercent}%)`
+    );
     return true;
   } catch (err: any) {
     console.error('❌ Failed to create Caldwell Checklist:', err.message);

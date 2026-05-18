@@ -1,6 +1,9 @@
-
 export function normalizeCatalogId(value: string): string {
-  return value.toString().toUpperCase().trim().replace(/[^A-Z0-9]/g, '');
+  return value
+    .toString()
+    .toUpperCase()
+    .trim()
+    .replace(/[^A-Z0-9]/g, '');
 }
 
 function isLikelyDateValue(value: any): boolean {
@@ -16,7 +19,13 @@ export function findHeaderRow(values: any[][], debug = false): number {
   const catalogPattern = /\bcat(alog)?\b/i;
   let bestRowIndex = 0;
   let bestScore = -1;
-  const candidates: Array<{ rowIndex: number; score: number; foundDate: boolean; foundCatalog: boolean; cells: string[] }> = [];
+  const candidates: Array<{
+    rowIndex: number;
+    score: number;
+    foundDate: boolean;
+    foundCatalog: boolean;
+    cells: string[];
+  }> = [];
 
   for (let rowIndex = 0; rowIndex < Math.min(values.length, 10); rowIndex++) {
     const row = values[rowIndex];
@@ -31,8 +40,14 @@ export function findHeaderRow(values: any[][], debug = false): number {
       const text = cell?.toString().trim() || '';
       cells.push(text || '<empty>');
       if (!text) continue;
-      if (datePattern.test(text)) { score += 3; foundDate = true; }
-      if (catalogPattern.test(text)) { score += 3; foundCatalog = true; }
+      if (datePattern.test(text)) {
+        score += 3;
+        foundDate = true;
+      }
+      if (catalogPattern.test(text)) {
+        score += 3;
+        foundCatalog = true;
+      }
       if (text.toLowerCase().includes('yyyy')) score += 1;
       if (text.includes('#')) score += 1;
     }
@@ -47,7 +62,7 @@ export function findHeaderRow(values: any[][], debug = false): number {
     if (foundDate && foundCatalog) break;
   }
 
-/*   if (debug) {
+  /*   if (debug) {
     console.log('🔎 findHeaderRow diagnostics for Astro Photo Log');
     console.log(`  scanned ${Math.min(values.length, 10)} rows`);
     candidates.forEach((c) => {
@@ -59,20 +74,29 @@ export function findHeaderRow(values: any[][], debug = false): number {
   return bestScore >= 1 ? bestRowIndex : 0;
 }
 
-export function detectColumns(headers: any[], sampleRows?: any[][]): { catalogColumnIdx: number; dateColumnIdx: number } {
+export function detectColumns(
+  headers: any[],
+  sampleRows?: any[][]
+): { catalogColumnIdx: number; dateColumnIdx: number } {
   let catalogColumnIdx = -1;
   let dateColumnIdx = -1;
 
   // Prefer exact match for catalog column first
   for (let i = 0; i < headers.length; i++) {
     const text = headers[i]?.toString().trim() ?? '';
-    if (text === 'Catalog #') { catalogColumnIdx = i; break; }
+    if (text === 'Catalog #') {
+      catalogColumnIdx = i;
+      break;
+    }
   }
 
   // Prefer exact match for date column first
   for (let i = 0; i < headers.length; i++) {
     const text = headers[i]?.toString().trim() ?? '';
-    if (text === 'Date (YYYY-MM-DD)') { dateColumnIdx = i; break; }
+    if (text === 'Date (YYYY-MM-DD)') {
+      dateColumnIdx = i;
+      break;
+    }
   }
 
   // Fall back to fuzzy matching for catalog if not found
@@ -90,7 +114,10 @@ export function detectColumns(headers: any[], sampleRows?: any[][]): { catalogCo
   if (dateColumnIdx < 0) {
     for (let i = 0; i < headers.length; i++) {
       const h = headers[i]?.toString().toLowerCase() ?? '';
-      if (h.includes('date')) { dateColumnIdx = i; break; }
+      if (h.includes('date')) {
+        dateColumnIdx = i;
+        break;
+      }
     }
   }
 
@@ -100,7 +127,7 @@ export function detectColumns(headers: any[], sampleRows?: any[][]): { catalogCo
     for (let i = 0; i < headers.length; i++) {
       const headerText = headers[i]?.toString().trim() ?? '';
       if (headerText) continue; // only consider columns with empty/missing headers
-      const dateMatches = sampleRows.slice(0, sampleCount).filter((row) => isLikelyDateValue(row[i]));
+      const dateMatches = sampleRows.slice(0, sampleCount).filter(row => isLikelyDateValue(row[i]));
       if (dateMatches.length >= Math.max(2, sampleCount - 1)) {
         dateColumnIdx = i;
         //console.log(`🔧 Fallback: detected date column at index ${i} from data values (header was empty)`);
@@ -120,7 +147,7 @@ export function debugChecklistDetection(
   dateColumnIdx: number,
   sampleRows: any[][]
 ) {
-/*   console.log(`📋 ${mainSheetName} checklist debug:`);
+  /*   console.log(`📋 ${mainSheetName} checklist debug:`);
   console.log(`   headerRowIndex=${headerRowIndex}`);
   console.log(`   headers=${headers.map((h) => h?.toString().trim() || '<empty>').join(' | ')}`);
   console.log(`   matched catalogColumnIdx=${catalogColumnIdx}, dateColumnIdx=${dateColumnIdx}`);
@@ -141,7 +168,9 @@ export function buildCatalogLogs(
   const catalogLogs: Record<string, string[]> = {};
 
   if (catalogColumnIdx < 0 || dateColumnIdx < 0) {
-    console.warn('⚠️ Could not detect Catalog or Date columns in Astro Photo Log; checklist will remain empty.');
+    console.warn(
+      '⚠️ Could not detect Catalog or Date columns in Astro Photo Log; checklist will remain empty.'
+    );
     return catalogLogs;
   }
 

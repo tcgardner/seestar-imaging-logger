@@ -24,9 +24,21 @@ function resolvePath(value: string | undefined, fallback: string): string {
   return path.isAbsolute(value) ? value : path.join(ROOT, value);
 }
 
-export const CONFIG_FILE = resolvePath(process.env.CONFIG_FILE, path.join(ROOT, 'seestar-log-config.json'));
-export const PROCESSED_FILE = resolvePath(process.env.PROCESSED_FILE, path.join(ROOT, 'processed-files.json'));
-export const DEFAULT_OUTPUT = resolvePath(process.env.DEFAULT_OUTPUT, path.join(ROOT, 'seestar-imaging-log.csv'));
-export const SERVICE_ACCOUNT_FILE = resolvePath(process.env.SERVICE_ACCOUNT_FILE, path.join(ROOT, 'service-account.json'));
+export const CONFIG_FILE = resolvePath(
+  process.env.CONFIG_FILE,
+  path.join(ROOT, 'seestar-log-config.json')
+);
+export const PROCESSED_FILE = resolvePath(
+  process.env.PROCESSED_FILE,
+  path.join(ROOT, 'processed-files.json')
+);
+export const DEFAULT_OUTPUT = resolvePath(
+  process.env.DEFAULT_OUTPUT,
+  path.join(ROOT, 'seestar-imaging-log.csv')
+);
+export const SERVICE_ACCOUNT_FILE = resolvePath(
+  process.env.SERVICE_ACCOUNT_FILE,
+  path.join(ROOT, 'service-account.json')
+);
 export const DEFAULT_MAX_GAP_MINUTES = Number(process.env.DEFAULT_MAX_GAP_MINUTES) || 30;
 export const DEFAULT_MIN_FILES = Number(process.env.DEFAULT_MIN_FILES) || 2;

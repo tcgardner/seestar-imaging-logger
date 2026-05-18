@@ -5,7 +5,11 @@ import { FITS } from 'fitsjs-ng';
 import fg from 'fast-glob';
 import { stringify } from 'csv-stringify/sync';
 import { program } from 'commander';
-import { getStandardHeader, parseFitsHeaders, readFitsHeadersFromFile } from './fits-header-parser.js';
+import {
+  getStandardHeader,
+  parseFitsHeaders,
+  readFitsHeadersFromFile,
+} from './fits-header-parser.js';
 import { ASTRONOMICAL_OBJECTS } from './astronomical-objects.js';
 import { getObjectTypeFromCatalog, getObjectNameFromCatalog } from './astronomy-api.js';
 import {
@@ -15,8 +19,15 @@ import {
   ensureSheetSetup,
   appendToGoogleSheet,
   addObjectTypeColorRules,
+  syncCsvToSheet,
 } from './spreadsheet/index.js';
-import { CONFIG_FILE, PROCESSED_FILE, DEFAULT_OUTPUT, DEFAULT_MAX_GAP_MINUTES, DEFAULT_MIN_FILES } from './env.js';
+import {
+  CONFIG_FILE,
+  PROCESSED_FILE,
+  DEFAULT_OUTPUT,
+  DEFAULT_MAX_GAP_MINUTES,
+  DEFAULT_MIN_FILES,
+} from './env.js';
 
 let processedFiles: Set<string> = new Set();
 
@@ -69,7 +80,6 @@ async function saveProcessedFiles() {
   writeFileSync(PROCESSED_FILE, JSON.stringify(Array.from(processedFiles), null, 2));
 }
 
-
 export interface RawParsedFile {
   filePath: string;
   timestamp: Date;
@@ -97,9 +107,9 @@ export interface LogEntry {
   'Number of Subs / Total Integration Time (seconds)': string;
   'Filter Used': string;
   'Gain / ISO': string;
-  'RA': string;
-  'DEC': string;
-  'TELESCOP': string;
+  RA: string;
+  DEC: string;
+  TELESCOP: string;
   'FITS File Path': string;
   'Notes / Issues': string;
 }
@@ -110,15 +120,15 @@ async function loadFile(filename: string): Promise<ArrayBuffer> {
 }
 
 async function parseFITS(filePath: string): Promise<RawParsedFile | null> {
-  try {   
-    const hdus = parseFitsHeaders(await loadFile(filePath));    
+  try {
+    const hdus = parseFitsHeaders(await loadFile(filePath));
     if (!hdus) {
       throw new Error('Failed to parse FITS header');
     }
     const primary = hdus[0];
 
     const std = getStandardHeader(primary);
-    
+
     const dateObs = std.DATE_OBS || std.DATE || '';
     let timestamp = new Date();
     let dateStr = 'Unknown';
@@ -161,7 +171,9 @@ async function parseFITS(filePath: string): Promise<RawParsedFile | null> {
       dateStr = localDateFormatter.format(timestamp);
     }
 
-    const objectName = (std.OBJECT || path.basename(filePath, path.extname(filePath))).toString().trim();
+    const objectName = (std.OBJECT || path.basename(filePath, path.extname(filePath)))
+      .toString()
+      .trim();
     const catalogStr = (std.CATALOG || std.OBJECT || '').toString().trim();
 
     const numSubs = std.STACKCNT || 1;
@@ -171,7 +183,7 @@ async function parseFITS(filePath: string): Promise<RawParsedFile | null> {
     // Live lookup via Sesame CDS Name Resolver
     const objectType = await getObjectTypeFromCatalog(catalogStr);
     const canonicalName = getObjectNameFromCatalog(catalogStr);
-    
+
     // Use canonical name if available, otherwise use the header name
     const finalObjectName = canonicalName || objectName;
 
@@ -221,7 +233,9 @@ export function groupIntoSessions(rawFiles: RawParsedFile[], minFiles: number): 
       if (currentSession.length >= minFiles) {
         sessions.push(createSessionEntry(currentSession));
       } else {
-        console.log(`⏭️  Skipped session with only ${currentSession.length} file(s): ${currentSession[0].objectName} (${currentSession[0].dateStr})`);
+        console.log(
+          `⏭️  Skipped session with only ${currentSession.length} file(s): ${currentSession[0].objectName} (${currentSession[0].dateStr})`
+        );
       }
       currentSession = [curr];
     }
@@ -230,7 +244,9 @@ export function groupIntoSessions(rawFiles: RawParsedFile[], minFiles: number): 
   if (currentSession.length >= minFiles) {
     sessions.push(createSessionEntry(currentSession));
   } else if (currentSession.length > 0) {
-    console.log(`⏭️  Skipped session with only ${currentSession.length} file(s): ${currentSession[0].objectName} (${currentSession[0].dateStr})`);
+    console.log(
+      `⏭️  Skipped session with only ${currentSession.length} file(s): ${currentSession[0].objectName} (${currentSession[0].dateStr})`
+    );
   }
 
   return sessions;
@@ -240,10 +256,13 @@ export function createSessionEntry(group: RawParsedFile[]): LogEntry {
   const first = group[0];
   const last = group[group.length - 1];
 
-  const totalSubs = ((group.reduce((sum, f) => sum + f.numSubs, 0)) / 2) + 1; // Adjusted to reflect actual subs (since some headers report total, some per sub)
-  const totalIntegration = ((group.reduce((sum, f) => sum + f.totalExp, 0)) / 2) + (parseFloat(group[0].expTimePerSub) || 0); // Adjusted to reflect actual integration time
+  const totalSubs = group.reduce((sum, f) => sum + f.numSubs, 0) / 2 + 1; // Adjusted to reflect actual subs (since some headers report total, some per sub)
+  const totalIntegration =
+    group.reduce((sum, f) => sum + f.totalExp, 0) / 2 + (parseFloat(group[0].expTimePerSub) || 0); // Adjusted to reflect actual integration time
 
-  const expPerSub = group.every(f => f.expTimePerSub === first.expTimePerSub) ? first.expTimePerSub : 'various';
+  const expPerSub = group.every(f => f.expTimePerSub === first.expTimePerSub)
+    ? first.expTimePerSub
+    : 'various';
   const filterUsed = group.every(f => f.filter === first.filter) ? first.filter : 'mixed';
 
   const notes = `${group.length} files grouped | Gap ≤ ${DEFAULT_MAX_GAP_MINUTES} min`;
@@ -257,9 +276,9 @@ export function createSessionEntry(group: RawParsedFile[]): LogEntry {
     'Number of Subs / Total Integration Time (seconds)': `${totalSubs} / ${totalIntegration.toFixed(0)}`,
     'Filter Used': filterUsed,
     'Gain / ISO': first.gain,
-    'RA': first.ra,
-    'DEC': first.dec,
-    'TELESCOP': first.telescop.split('_')[0], // Just the telescope name, without extra details
+    RA: first.ra,
+    DEC: first.dec,
+    TELESCOP: first.telescop.split('_')[0], // Just the telescope name, without extra details
     'FITS File Path': first.filePath,
     'Notes / Issues': notes,
   };
@@ -280,15 +299,23 @@ async function main() {
     .argument('[directory]', 'Root folder (optional – uses saved config)', config.lastDirectory)
     .option('-o, --output <path>', 'CSV file', config.lastOutput)
     .option('-g, --google-sheet <id>', 'Google Spreadsheet ID', config.lastSpreadsheetId)
-    .option('-e, --exclude <patterns>', 'Comma-separated folders to skip', config.excludePatterns.join(','))
-    .option('--min-files <number>', 'Minimum number of FITS files to form a session', String(config.minFiles))
+    .option(
+      '-e, --exclude <patterns>',
+      'Comma-separated folders to skip',
+      config.excludePatterns.join(',')
+    )
+    .option(
+      '--min-files <number>',
+      'Minimum number of FITS files to form a session',
+      String(config.minFiles)
+    )
     .option('--reset', 'Reset saved config')
     .action(async (directory: string | undefined, options: any) => {
       if (options.reset) {
-        config = { 
-          lastOutput: DEFAULT_OUTPUT, 
+        config = {
+          lastOutput: DEFAULT_OUTPUT,
           excludePatterns: ['calibration', 'darks', 'flats', 'bias', 'thumbs'],
-          minFiles: DEFAULT_MIN_FILES 
+          minFiles: DEFAULT_MIN_FILES,
         };
         await saveConfig('', DEFAULT_OUTPUT, undefined, config.excludePatterns, DEFAULT_MIN_FILES);
         console.log('🔄 Config reset to defaults.');
@@ -301,11 +328,15 @@ async function main() {
         process.exit(1);
       }
 
-      const excludeList = options.exclude 
-        ? options.exclude.split(',').map((s: string) => s.trim()).filter(Boolean) 
+      const excludeList = options.exclude
+        ? options.exclude
+            .split(',')
+            .map((s: string) => s.trim())
+            .filter(Boolean)
         : config.excludePatterns;
 
-      const minFiles = parseInt(options.minFiles || config.minFiles.toString()) || DEFAULT_MIN_FILES;
+      const minFiles =
+        parseInt(options.minFiles || config.minFiles.toString()) || DEFAULT_MIN_FILES;
       const spreadsheetId = options.googleSheet || config.lastSpreadsheetId;
 
       console.log(`🔍 Scanning ${rootDir}...`);
@@ -314,11 +345,11 @@ async function main() {
       if (spreadsheetId) console.log(`📊 Google Sheets: ${spreadsheetId}`);
 
       const ignorePatterns = excludeList.map(folder => `**/${folder}/**`);
-      const files = await fg('**/*.{fit,fits}', { 
-        cwd: rootDir, 
-        absolute: true, 
-        onlyFiles: true, 
-        ignore: ignorePatterns 
+      const files = await fg('**/*.{fit,fits}', {
+        cwd: rootDir,
+        absolute: true,
+        onlyFiles: true,
+        ignore: ignorePatterns,
       });
 
       const newFiles = files.filter(f => !processedFiles.has(f));
@@ -328,6 +359,7 @@ async function main() {
         console.log('✅ No new files.');
         if (spreadsheetId) {
           await ensureSheetSetup(spreadsheetId);
+          await syncCsvToSheet(spreadsheetId, options.output);
           await addObjectTypeColorRules(spreadsheetId);
           await createMessierChecklistSheet(spreadsheetId);
           await createCaldwellChecklistSheet(spreadsheetId);
@@ -352,12 +384,17 @@ async function main() {
           }
           completed++;
           const percent = Math.round((completed / newFiles.length) * 100);
-          const bar = '█'.repeat(Math.floor(percent / 5)) + '░'.repeat(20 - Math.floor(percent / 5));
-          process.stdout.write(`\r\x1b[2K⏳ [${bar}] ${completed}/${newFiles.length} (${percent}%) – ${path.basename(file)}`);
+          const bar =
+            '█'.repeat(Math.floor(percent / 5)) + '░'.repeat(20 - Math.floor(percent / 5));
+          process.stdout.write(
+            `\r\x1b[2K⏳ [${bar}] ${completed}/${newFiles.length} (${percent}%) – ${path.basename(file)}`
+          );
         }
       }
 
-      await Promise.all(Array.from({ length: Math.min(FITS_CONCURRENCY, newFiles.length) }, worker));
+      await Promise.all(
+        Array.from({ length: Math.min(FITS_CONCURRENCY, newFiles.length) }, worker)
+      );
       console.log('');
 
       const sessionEntries = groupIntoSessions(rawParsed, minFiles);
@@ -367,6 +404,7 @@ async function main() {
         console.log('⚠️ No sessions met the minimum file requirement.');
         if (spreadsheetId) {
           await ensureSheetSetup(spreadsheetId);
+          await syncCsvToSheet(spreadsheetId, options.output);
           await addObjectTypeColorRules(spreadsheetId);
           await createMessierChecklistSheet(spreadsheetId);
           await createCaldwellChecklistSheet(spreadsheetId);
@@ -383,6 +421,12 @@ async function main() {
         quoted: true,
       });
 
+      if (spreadsheetId) {
+        await ensureSheetSetup(spreadsheetId);
+        // Sync before writing CSV so current-run rows aren't double-added
+        await syncCsvToSheet(spreadsheetId, options.output);
+      }
+
       if (existsSync(options.output)) {
         appendFileSync(options.output, csvString);
       } else {
@@ -390,7 +434,6 @@ async function main() {
       }
 
       if (spreadsheetId) {
-        await ensureSheetSetup(spreadsheetId);
         await appendToGoogleSheet(spreadsheetId, sessionEntries);
         await addObjectTypeColorRules(spreadsheetId);
         await createMessierChecklistSheet(spreadsheetId);
@@ -410,7 +453,7 @@ async function main() {
   await program.parseAsync(process.argv);
 }
 
-main().catch((err) => {
+main().catch(err => {
   console.error('💥 Error:', err.message);
   process.exit(1);
 });
